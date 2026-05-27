@@ -1,0 +1,320 @@
+---
+title: "pr2"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "2026-02-11"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+cosas para cambiar:
+
+* Explicar les taules (que surten i com llegir-les)
+
+* usar mediana y percentils 25 i 75 per a l'analisi descriptiu
+
+* més reflexió i expressió d'opinió, no ens limitem a descriure el que passa
+```{r carrega}
+# Creuem les dades
+library(haven)
+library(dplyr)
+uab_demo2 <- read_sas("uab_demo2.sas7bdat", NULL)
+uab_drugs2 <- read_sas("uab_drugs2.sas7bdat", NULL)
+uab_atcdrugs2 <- read_sas("uab_atc_drugs2.sas7bdat", NULL)
+
+data1 <- merge(uab_demo2, uab_drugs2, by.x="PatNo", by.y="PatNo")
+data <- merge(data1, uab_atcdrugs2, by.x="PatNo", by.y="PatNo")
+
+data <- data %>%
+  mutate(across(where(~ all(unique(.x) %in% c(0, 1, 2, 3, NA,"M","F"))), as.factor))
+data=subset(data, select=-c(Hipogonad, Previoinsulina, FX_familia))
+data$NFractura=as.factor(data$NFractura)
+levels(data$NFractura)[levels(data$NFractura) %in% c("2", "3", "4", "5", "6", "7")]=">=2"
+```
+
+# Analitzar exposició a fàrmacs i els riscs associats de fractura
+
+## Anàlisi descriptiva d'exposició en els grups de cas i control
+
+A partir de la següent taula fem un anàlisi descriptiu d'exposició en els grups de cas i control per a cada variable\footnote{Annex \ref{anx:descrip}}. 
+
+```{r descrip,results=F}
+library(dplyr)
+library(tableone)
+
+
+variables_farmacs <- c("insulinaDias", "ActPrevantiulceros_IBP", "ActualCortis_sistemics", "N06AA_SN", 
+                       "ADepreISRSCur", "CortInh", "PrevioCortis_sistemics", "N06AB_SN", "N06A_SN", 
+                       "ADepreNoISRSDias", "R03BA_SN", "ADepreISRS6m", "PrevioBisfosfonats", 
+                       "ActPrevCortis_sistemics", "ActualADO_glitazona", "ADepreISRS", "ADepreISRSDias", 
+                       "N_SN", "insulina", "ADepreNoISRSCur", "ActualCortis_inhalats", "H01_SN", 
+                       "N06AX_SN", "ActPrevinsulina", "Actualantiulceros_IBP", "ActPrevCortis_inhalats", 
+                       "BisfDias", "ADO_no_glitazonaDias", "ActPrevBisfosfonats", "CortSistIniBf3m", 
+                       "CortInhIniBf3m", "Previoantidepressiu_no_ISRS", "ActPrevantidepressiu_ISRS", 
+                       "CortSistDias", "H02_SN", "H_Dias", "PrevioCortis_inhalats", "CortSistExpLt3m", 
+                       "CortSistExpCat", "H_SN", "Actualosteoporosi_no_bisfosfonat", "ADepreNoISRS6m", 
+                       "Bisf", "PrevioADO_glitazona", "CortInhExpCat", "Actualinsulina", "CortInhExpLt3m", 
+                       "ActPrevADO_glitazona", "H02_Dias", "CortSist", "ADepreNoISRS", "Previoinsulina", 
+                       "R03BA_Dias", "Actualantidepressiu_no_ISRS", "ADO_no_glitazona", "BisfExpCat", 
+                       "Previoantiulceros_IBP", "Actualantidepressiu_ISRS", "ADO_glitazonaDias", 
+                       "Previoantidepressiu_ISRS", "N06_SN", "ActualBisfosfonats")
+
+
+variables_cat=variables_farmacs[!grepl("Dias", variables_farmacs)]
+
+taula_an <- CreateTableOne(
+  vars = variables_farmacs , 
+  factorVars = variables_cat,
+  strata = "Grup.x", 
+  data = data
+)
+
+tbl=print(taula_an)
+colnames(tbl)=c("Control","Cas","P_valor"," ")
+class(tbl)
+```
+
+```{r descrip2}
+library(knitr)
+kable(tbl,caption = "\\label{tab:descrip}Comparació de Medicaments i teràpies",align = "lccc")
+```
+
+La Taula \ref{tab:descrip} mostra els estadístics descriptius de l'exposició als diferents fàrmacs segons el grup d'estudi.
+
+En general, la majoria de variables presenten distribucions similars entre casos i controls, sense diferències estadísticament significatives.
+
+Tanmateix, s'observen diferències significatives en algunes variables com CortInh, N06A_SN, R03BA_SN, ADepreNoISRSCur, CortInhIniBf3m, CortInhExpLt3m, ADepreNoISRS i N06_SN. 
+
+No obstant això, aquesta anàlisi és purament descriptiva i no té en compte possibles factors de confusió. Per aquest motiu, en les anàlisis posteriors es realitza una regressió logística, tant de forma crua com ajustada per covariables.
+
+## Anàlisi logística "crua"
+
+Fem l'anàlisi logística crua de cada variable\footnote{Annex \ref{anx:logcru}}
+
+```{r logcru, message=FALSE, results=F}
+variables_a_excloure <- c(
+  "PatNo", "Grup", "Edat", "Sexe", "ServeiAlta", "PES",                
+  "TALLA", "IMC", "ALCOHOL", "Smoker", "Artritis_reumatoide",
+  "Fractura", "NFractura", "Diabetis", "tipus_diabetis",      
+  "Densitometries", "Osteporosi", "neoplasia", "HiperTiroidisme",    
+  "Malnutricio", "Malabsorcio", "Malaltia_Hep_Cro", "OthRiskFract",        
+  "CountActualGE4",
+  # per evitar errors
+  "Grup.x", "Grup.y"
+)
+
+totes_les_columnes <- names(data)
+
+variables_analisi <- setdiff(totes_les_columnes, variables_a_excloure)
+
+
+resultats_2b <- lapply(variables_analisi, function(variable) {
+
+    formula_model <- as.formula(paste("Grup ~", variable))
+    
+    model <- glm(formula_model, data = data, family = binomial)
+    
+    coeficients <- summary(model)$coefficients
+
+    estimacio <- coef(model)[2]
+    p_valor <- coeficients[2,4]
+    
+    OR <- exp(estimacio)
+    IC <- exp(confint(model)[2, ])
+    
+    return(data.frame(
+      OR_Cru = round(OR, 2),
+      IC_Inferior = round(IC[1], 2),
+      IC_Superior = round(IC[2], 2),
+      P_valor = round(p_valor, 3)
+    ))
+    })
+
+taula_final_2b <- do.call(rbind, resultats_2b)
+
+tab <- print(taula_final_2b)
+```
+
+```{r logcru2}
+kable(tab, caption="\\label{tab:logcru}Anàlisi cru de les variables",align = "lccc")
+```
+
+Observant la Taula \ref{tab:logcru}, aquesta mostra els resultats de la regressió logística crua per analitzar l’associació entre l’exposició als diferents fàrmacs i el risc de fractura de maluc. En aquest model no s’han considerat possibles factors de confusió.
+
+S’observa que alguns fàrmacs presenten una odds ratio superior a 1, indicant una major probabilitat de fractura en pacients exposats en comparació amb els no exposats. En canvi, altres fàrmacs mostren OR inferiors a 1, suggerint una possible associació protectora.
+
+No obstant això, diversos resultats presenten intervals de confiança amplis o inclouen el valor 1, fet que indica que l’associació no és estadísticament significativa.
+
+## Anàlisi logística ajustada per covariables
+
+Per tal de conèixer l'efecte real dels medicaments a les fractures, posteriorment a l'anàlisi cru amb regressió logística, s'ha optat per fer servir el mateix métode, però incloent variables confusores\footnote{Annex \ref{anx:logajust}}. Aquestes són variables associades tant amb l'exposició  (ús de medicaments) com amb el resultat d'interès (fractura), i que no forma part de la cadena causal directa entre ells, evitant així possibles biaixos.
+
+Per a la construcció del model, s'ha dut a terme un procés de selecció de variables basat en la seva rellevància clínica i els resultats obtinguts en l'anàlisi bivariant de la pràctica anterior (Veure Taula \ref{tab:taula_ant}).
+
+* **Variables d'ajust**: `edat` i `sexe`, ja que encara que estiguin aparellades en el cas i el control, i no puguin ser analitzades per separat, es necessari posar-les ja que així indiquem al model que estan aparellades. S'inclouen per controlar diferències demogràfiques bàsiques entre grups.
+
+* **Variables confusores retingudes** (`osteporosi` i `Fractura`): Compleixen un doble criteri. D'una banda, presenten una forta evidència clínica com a factors de risc directes per a futures fractures. L'osteporosi és una enfermetat que debilita els ossos i agumenta el risc de fractures i, Fractura indica si han hagut fractures prèvies(paper). D'altra banda, l'anàlisi de comparació de grups confirma una diferència estadísticament significativa en la nostra mostra d'estudi (Veure Taula \ref{tab:taula_ant}).
+
+* **Variables avaluades i excloses**:
+
+  - `Smoker` i `Alcohol`: Inicialment es va considerar la seva inclusió, ja que es va pensar que són factors de risc de la vida qüotidiana que afecten la densitat òssea i poden estar associades amb alguns medicaments(paper). No obstant, la comparació de grups no mostra diferències estadísticament significatives (Veure Taula \ref{tab:taula_ant})
+
+
+  - `CountActualGE4` i `Diabetis`: De manera similar, es va avaluar l'impacte de prendre 4 o més fàrmacs de risc (variable `CountActualGE4`), ja que podia indicar que un pacient tenia múltiples patologies(paper). Per al cas de la diabetis es prova la insulina i altres medicaments associats a aquesta enfermetat.
+  
+Per evitar el sobreajustament i mantenir un model parsimoniós i robust, s'ha optat per excloure aquestes quatres últimes variables (`Smoker`, `Alcohol`, `CountActualGE4` i `Diabetis`), ja que presenten similituds estadísticament significatives entre els dos grups (Cas i Control) (Veure Taula \ref{tab:taula_ant}), per tant no les considerem com confusores.
+
+
+Per altra banda, es va considerar l’IMC com a possible variable confusora en l’anàlisi ajustada. No obstant això, la presència d’un nombre elevat de valors perduts va reduir substancialment la mida mostral efectiva, impedint obtenir estimacions ajustades estables i fiables. Per aquest motiu, no es va poder realitzar l’anàlisi ajustada amb aquesta variable.
+
+```{r logajust, results=F}
+covariables <- c("Edat", "Sexe", "Osteporosi", "Fractura")  
+
+resultats_ajustats <- lapply(variables_analisi, function(variable) {
+  
+  formula_model <- as.formula(
+    paste("Grup ~", variable, "+", paste(covariables, collapse = " + "))
+  )
+  
+    model <- glm(formula_model, data = data, family = binomial)
+    coeficients <- summary(model)$coefficients
+    
+    estimacio <- coef(model)[2]
+    p_valor <- coeficients[2,4]
+    IC <- exp(confint(model)[2, ])
+      
+    return(data.frame(
+      OR_Ajustat = round(exp(estimacio), 2),
+      IC_Inferior = round(IC[1], 2),
+      IC_Superior = round(IC[2], 2),
+      P_valor = round(p_valor, 3)
+    ))
+})
+
+
+taula_final_ajustada <- do.call(rbind, resultats_ajustats)
+tab2 <- print(taula_final_ajustada)
+```
+
+```{r logajust2}
+kable(tab2, caption = "\\label{tab:logajust}Anàlisi logística ajustada per covariables demogràfiques",align = "lcccc")
+```
+
+La Taula \ref{tab:logajust} presenta els resultats de la regressió logística ajustada per diferents covariables potencialment confusores, com l’edat, el sexe, el consum d’alcohol, el tabaquisme, l’osteoporosi i l’historial de fractures.
+
+En comparar aquests resultats amb els del model cru, s’observa que la majoria de les estimacions es mantenen en una magnitud similar, tot i que algunes associacions es modifiquen lleugerament després de l’ajust. Això suggereix que part de l’associació observada podria estar influïda per factors de confusió.
+
+Alguns fàrmacs continuen mostrant una associació amb el risc de fractura després de l’ajust, mentre que en altres casos l’associació desapareix o es debilita.
+
+## Estadístics descriptius, mesures de risc, inferencies...
+
+```{r tab4}
+taula_unida <- data.frame(
+  Variable = variables_analisi,
+  OR_C = taula_final_2b$OR_Cru,
+  Inf_C = taula_final_2b$IC_Inferior,
+  Sup_C = taula_final_2b$IC_Superior,
+  P_C = taula_final_2b$P_valor,
+  OR_A = taula_final_ajustada$OR_Ajustat,
+  Inf_A = taula_final_ajustada$IC_Inferior,
+  Sup_A = taula_final_ajustada$IC_Superior,
+  P_A = taula_final_ajustada$P_valor)
+
+
+taula_presentacio <- data.frame(
+  Variable = taula_unida$Variable,
+  `OR Crua (IC 95%)` = paste0(taula_unida$OR_C, " (", taula_unida$Inf_C, "-", taula_unida$Sup_C, ")"),
+  `p-valor Cru` = taula_unida$P_C,
+  `OR Ajustada (IC 95%)` = paste0(taula_unida$OR_A, " (", taula_unida$Inf_A, "-", taula_unida$Sup_A, ")"),
+  `p-valor Ajust` = taula_unida$P_A,check.names = FALSE)
+
+kable(taula_presentacio, caption = "\\label{tab:taula4}Comparativa entre estadístics crus i ajustats",align = "lcccc")
+```
+
+La Taula \ref{tab:taula4} compara les odds ratio cures amb les ajustades en els models de regressió logística. En general, es pot observar que moltes de les estimacions ajustades són similars a les crues, suggerint així que l'efecte dels factors de confusió considerat és limitat.
+
+Algunes variables mantenen una associació significativa després de l'ajust com els corticoides inhalats mostrant un OR inferior a 1, indicant que una possible associació protectora respecte al risc de fractura de maluc. De manera anàloga l'ús de AD (Antidepressius) no ISRS és manté amb un OR superior a 1  volent dir que possiblement hi ha una probabilitat més elevada de fractura en els pacients exposats.
+
+També s'observa que els resultats significatius en el model cru són menys significatives és a dir es debiliten o deixen de ser-ho en el model ajustat. Indicant així presència de factors de confusió que influeixen en les associacions.
+
+En altres casos, els IC són amplis i inclouen el valor 1, Indicant una elevada incertesa en l'estimació.(sense associació estadísticament significativa).
+
+# Discussió sobre els resultats
+
+## a) Què quadra i que no
+En comparar els resultats del model cru amb els del model ajustat, s’observa que en la majoria de variables les estimacions es mantenen similars, de manera que els resultats són qualitativament consistents després de l’ajust.
+
+En alguns casos, però, l’ajust modifica lleugerament les estimacions o la significació estadística, cosa que suggereix que part de l’associació observada en el model cru podria estar influïda per factors de confusió.
+
+Pel que fa als corticoides, els corticoides inhalats mostren una associació similar tant en el model cru com en l’ajustat, amb una OR inferior a 1. En canvi, els corticoides sistèmics no presenten una associació clara amb el risc de fractura en cap dels dos models.
+
+## b) Adeqauació del model logisitc
+
+La regressió logística és adequada perquè la variable resposta és binària (presència o absència de fractura). Aquest model permet estimar la relació entre l’exposició als diferents fàrmacs i el risc de fractura mitjançant l’estimació d’odds ratio, tant en models crus com ajustats per possibles factors de confusió.
+
+\clearpage
+\appendix
+
+# Annex
+
+## Creuar data
+
+\label{anx:carrega}
+
+```{r ref.label='carrega', echo=TRUE, eval=FALSE}
+```
+
+## Anàlisi d'exposició als fàrmacs i els riscs associats de fractura
+
+### Anàlisi descriptiva
+
+\label{anx:descrip}
+
+```{r ref.label='descrip', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='descrip2', echo=TRUE, eval=FALSE}
+```
+
+### Anàlisi logística crua
+
+\label{anx:logcru}
+
+```{r ref.label='logcru', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='logcru2', echo=TRUE, eval=FALSE}
+```
+
+### Anàlisi logística ajustada
+
+\label{anx:logajust}
+
+```{r}
+df_final <- read.csv("tabla_temp.csv", sep = ";", header = TRUE)
+colnames(df_final)=c("Variable","Total","Cas","Control", "P_valor")
+names(df_final)
+kable(df_final,caption = "\\label{tab:taula_ant}Comparació entre casos i controls",align = "lcccc")
+```
+
+
+```{r ref.label='logajust', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='logajust2', echo=TRUE, eval=FALSE}
+```
+### Comparativa entre estadístics crus i ajustats
+
+```{r ref.label='tab4', echo=TRUE, eval=FALSE}
+```

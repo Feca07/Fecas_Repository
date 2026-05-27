@@ -1,0 +1,170 @@
+---
+title: "Relació entre exposició a fàrmacs antidepressius i fractura de maluc"
+author:
+  - "Iker Fernandez (1704341)"
+  - "Enola Garcia (1708253)"
+  - "Didac Campuzano (1703766)"
+  - "Marta Baurier (1668618)"
+  - "Jana Labrador (1704595)"
+date: "2026-02-11"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: ["float"]
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+
+En aquesta primera part hem revisat la qualitat de les dades (missing i incoherències) i hem comparat les característiques basals entre casos i controls.
+
+```{r carrega, results="hide"}
+library(haven)
+
+uab_demo1 <- read_sas("uab_demo1.sas7bdat", NULL)
+
+uab_drugs1 <- read_sas("uab_drugs1.sas7bdat", NULL)
+
+uab_atc_drugs1 <- read_sas("uab_atc_drugs1.sas7bdat",NULL)
+uab_demo1$Sexe=as.factor(uab_demo1$Sexe)
+uab_demo1$Sexe[uab_demo1$Sexe == ""]=NA
+library(dplyr)
+
+vars_factor <- c("Sexe", "Grup", "ServeiAlta", "ALCOHOL", "Smoker", 
+                 "Hipogonad", "Artritis_reumatoide", "Fractura", 
+                 "FX_familia", "Diabetis", "tipus_diabetis", 
+                 "Densitometries", "Osteporosi", "neoplasia", 
+                 "HiperTiroidisme", "Malnutricio", "Malabsorcio", 
+                 "Malaltia_Hep_Cro","CountActualGE4","OthRiskFract")
+
+uab_demo1 <- uab_demo1 %>%
+  mutate(across(all_of(vars_factor), as.factor))
+uab_demo1$Sexe[uab_demo1$Sexe == ""]=NA
+```
+
+# Qualitat de les dades
+
+Després d'una inspecció inicial de la base de dades demogràfica\footnote{Annex \ref{anx:carrega}}, s'han detectat deficiències crítiques que podrien comprometre la validesa interna de l'estudi.
+
+## Valors absents en variables crítiques
+
+S'ha detectat una pèrdua d'informació sistemàtica en variables que el protocol defineix com a fonamentals per a l'anàlisi
+
+Tal com veiem a la figura\footnote{Annex \ref{anx:nas}}, es detecten **registres sense informació de sexe o edat**
+
+```{r nas, out.width="85%", fig.pos="H"}
+library(naniar)
+gg_miss_var(uab_demo1)
+```
+
+Per altra banda, també s'observa una mancança molt elevada de dades antropomètriques (**pes i talla**).
+
+## Discrepàncies de càlcul
+
+S'ha realitzat una verificació de les variables calculades presents al fitxer i s'ha detectat que la variable `IMC` conté errors de transcripció. A la funció de resum "*summary*"\footnote{Annex \ref{anx:summary}} veiem un cas de $IMC=55$. Observant aquesta entrada d'aprop\footnote{Annex \ref{anx:summary}} veiem que el seu pes és de $55$kg i talla de $152$ cm.
+
+S'han identificat altres registres on l'IMC no corresponia al càlcul manual.
+
+```{r summary, results='hide'}
+summary(uab_demo1)
+library(psych)
+describe(uab_demo1)
+
+cat("Pes =",uab_demo1[365,]$PES[1], "Talla = ", uab_demo1[365,]$TALLA[1], "IMC = ", 
+    uab_demo1[365,]$IMC[1])
+real= uab_demo1[365,]$PES[1]/(uab_demo1[365,]$TALLA[1]/100)^2; real
+
+```
+
+## Valors extrems i outliers
+
+Tot i que el protocol estipula un rang d'edat de 50 a 90 anys, s'han detectat 46 pacients\footnote{Annex \ref{anx:outliers}} amb edat superior als 90 anys.
+
+```{r outliers, results='hide'}
+length(which(uab_demo1$Edat>90))
+```
+\clearpage
+# Comparació de les característiques basals
+
+```{r compare,results=F}
+library(compareGroups)
+library(knitr)
+
+taula <- compareGroups(Grup ~ . - PatNo, method = c(IMC = 2) , data=uab_demo1)
+
+ct=createTable(taula, show.all = TRUE )
+
+export2csv(ct, file = "tabla_temp.csv", sep = ";")
+df_final <- read.csv("tabla_temp.csv", sep = ";", header = TRUE)
+file.remove("tabla_temp.csv")
+```
+
+```{r taula}
+kable(df_final,caption = "\\label{tab:taula}Comparació entre casos i controls")
+```
+
+Abans d'analitzar la taula, hem cregut òptim fer algunes aclaracions i recomanacions, s'ha optat per utilitzar la funció `compareGroups` com s'indica,  tenint en compte que aquesta tria automàticament segons les dades entre les proves $X^2$ i $Fisher$, cosa que ens ha semblat molt precís, per tot, excepte per la variable `IMC`, a la qual, li executarem la prova no paramètrica de Wilcoxon-Mann-Whitney, ja que aquesta variable té outliers i és asimétrica.
+
+
+Començant les recomanacions, s'ha cregut eficient, que s'avalui la importancia de les variables: `Malaltia_Hep_Cro`, `Malabsorcio`, `Malnutricio`, `Hipertiroidisme`, ja que en aquestes es presenten molt pocs casos positius, i per termes de depuració, significancia i parsimonia, és possible que eliminar-les, sigui la opció més òptima.
+
+Aclarit això, a continuació tenim la interpretació de la taula:
+
+A la taula \ref{tab:taula}\footnote{Annex \ref{anx:taula}} es comparen casos (X=1) i controls (X=0). En primer lloc, els dos grups són comparables en variables basals clau, ja que no s’observen diferències entre edat i sexe. 
+
+A la variable `ServeiAlta` observem diferències que ens ajuden a verificar la qualitat de les dades: els casos provenen gairebé exclusivament de Traumatologia, mentre que els controls s’agrupen principalment en altres serveis. Això té sentit quant a l'origen de les nostres dades.
+
+Pel que fa al perfil clínic, els casos presenten més fractura prèvia, més nombre de fractures i més osteoporosi que els controls. La resta de variables analitzades no mostren diferències estadísticament significatives. 
+
+Les variables d’antropometria (pes, talla i IMC) tampoc mostren diferències clares i cal interpretar-les amb prudència per possibles valors perduts/inconsistències.
+
+\clearpage
+# Discussió sobre el possible disseny de l’estudi
+
+Aquest estudi es defineix com un estudi observacional, analític de casos i controls de base hospitalaria i retrospectiu, pensem que aquest disseny és el més adequat per investigar sobre l'associació entre l'exposició a medicaments i la fractura per fragilitat, ja que és eficient en temps i costs.
+
+L’aparellament de dos controls per cada cas segons l’edat i el sexe és una estratègia encertada que millora la comparabilitat i la força de l’anàlisi. És lògic que gairebé tots els casos provinguin de Traumatologia, ja que és on es tracten les fractures, però cal tenir en compte que els controls d’altres serveis podrien tenir hàbits de salut o consum de medicaments diferents. L’ús de registres electrònics ajuda a evitar oblits dels pacients sobre el que prenien, tot i que no pot garantir que realment seguissin tot el tractament. 
+
+El disseny permet estudiar molts fàrmacs alhora per a un mateix problema, el que el fa molt eficient per a la recerca clínica. Tot i això, la validesa de les conclusions dependrà de com s'hagin seleccionat els controls per evitar que les seves malalties prèvies influeixin en els resultats.
+
+\clearpage
+\appendix
+# Annex
+
+## Càrrega de dades
+
+\label{anx:carrega}
+
+```{r ref.label='carrega', echo=TRUE, eval=FALSE}
+```
+
+## Valors extrems
+
+\label{anx:nas}
+
+```{r ref.label='nas', echo=TRUE, eval=FALSE}
+```
+
+## Discrepàncies de càlcul
+
+\label{anx:summary}
+
+```{r ref.label='summary', echo=TRUE, eval=TRUE}
+```
+
+## Valors extrems
+
+\label{anx:outliers}
+
+```{r ref.label='outliers', echo=TRUE, eval=TRUE}
+```
+
+## Taula 1
+\label{anx:taula}
+```{r ref.label='compare', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='taula', echo=TRUE, eval=FALSE}
+```

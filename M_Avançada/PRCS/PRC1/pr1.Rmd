@@ -1,0 +1,125 @@
+---
+title: "pr1-avanzada"
+author:
+  - "Iker Fernandez (1704341)"
+  - "Enola Garcia (1708253)"
+  - "Didac Campuzano (1703766)"
+  - "Marta Baurier (1668618)"
+  - "Jana Labrador (1704595)"
+date: "2026-02-11"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: ["float"]
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+
+# dab
+## dab
+```{r carrega, results="hide"}
+library(haven)
+
+uab_demo1 <- read_sas("uab_demo1.sas7bdat", NULL)
+
+uab_drugs1 <- read_sas("uab_drugs1.sas7bdat", NULL)
+
+uab_atc_drugs1 <- read_sas("uab_atc_drugs1.sas7bdat",NULL)
+library(dplyr)
+
+vars_factor <- c("Sexe", "Grup", "ServeiAlta", "ALCOHOL", "Smoker", 
+                 "Hipogonad", "Artritis_reumatoide", "Fractura", 
+                 "FX_familia", "Diabetis", "tipus_diabetis", 
+                 "Densitometries", "Osteporosi", "neoplasia", 
+                 "HiperTiroidisme", "Malnutricio", "Malabsorcio", 
+                 "Malaltia_Hep_Cro","CountActualGE4","OthRiskFract")
+
+uab_demo1 <- uab_demo1 %>%
+  mutate(across(all_of(vars_factor), as.factor))
+uab_demo1$Sexe[uab_demo1$Sexe == ""]=NA
+```
+## Qualitat de les dades
+
+Després d'una inspecció inicial de la base de dades demogràfica\footnote{Annex \ref{anx:carrega}}, s'han detectat deficiències crítiques que podrien comprometre la validesa interna de l'estudi.
+
+
+### Valors absents en variables crítiques
+
+S'ha detectat una pèrdua d'informació sistemàtica en variables que el protocol defineix com a fonamentals per a l'anàlisi
+
+Tal com veiem a la figura\footnote{Annex \ref{anx:nas}}, es detecten **registres sense informació de sexe o edat**
+```{r nas, out.width="85%", fig.pos="H"}
+library(naniar)
+gg_miss_var(uab_demo1)
+```
+
+Per altra banda, també s'observa una mancança molt elevada de dades antropomètriques (**pes i talla**).
+
+
+### Discrepàncies de càlcul
+S'ha realitzat una verificació de les variables calculades presents al fitxer i s'ha detectat que la variable `IMC` conté errors de transcripció. Al summary\footnote{Annex \ref{anx:summary}} veiem un cas de $IMC=55$. Observant aquesta entrada d'aprop\footnote{Annex \ref{anx:summary}} veiem que el seu pes és de $55$kg i talla de $152$ cm. 
+
+S'han identificat altres registres on l'IMC no corresponia al càlcul manual.
+
+```{r summary, results='hide'}
+summary(uab_demo1)
+library(psych)
+describe(uab_demo1)
+
+cat("Pes =",uab_demo1[365,]$PES[1], "Talla = ", uab_demo1[365,]$TALLA[1], "IMC = ", uab_demo1[365,]$IMC[1])
+real= uab_demo1[365,]$PES[1]/(uab_demo1[365,]$TALLA[1]/100)^2; real
+```
+
+
+### Valors extrems i outliers
+Tot i que el protocol estipula un rang d'edat de 50 a 90 anys, s'han detectat 46 pacients\footnote{Annex \ref{anx:outliers}} amb edat superior als 90 anys. 
+
+```{r outliers, results='hide'}
+length(which(uab_demo1$Edat>90))
+```
+\clearpage
+```{r,results=F}
+library(compareGroups)
+library(knitr)
+library(xtable)
+taula <- compareGroups(Grup ~ . - PatNo, data=uab_demo1)
+
+dab=createTable(taula, show.all = TRUE )
+descr=as.table(dab$descr)
+
+export2csv(dab, file = "tabla_temp.csv", sep = ";")
+df_final <- read.csv("tabla_temp.csv", sep = ";", header = TRUE)
+file.remove("tabla_temp.csv")
+```
+
+```{r}
+kable(df_final,caption = "Comparació entre casos i controls")
+```
+
+
+\clearpage
+\appendix
+# Annex
+## Càrrega de dades
+\label{anx:carrega}
+```{r ref.label='carrega', echo=TRUE, eval=FALSE}
+```
+
+## Valors extrems
+\label{anx:nas}
+```{r ref.label='nas', echo=TRUE, eval=FALSE}
+```
+
+## Discrepàncies de càlcul
+\label{anx:summary}
+```{r ref.label='summary', echo=TRUE, eval=TRUE}
+```
+
+## Valors extrems
+\label{anx:outliers}
+```{r ref.label='outliers', echo=TRUE, eval=TRUE}
+```

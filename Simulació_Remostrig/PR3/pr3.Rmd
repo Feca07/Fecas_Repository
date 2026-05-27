@@ -1,0 +1,155 @@
+---
+title: 'Pr3: Tests permutacionals'
+author: 
+- "Enola Garcia NIU: 1708253"
+- "Iker Fernandez NIU: 1704341"
+date: "2026-02-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+# Exercici 1
+
+```{r}
+library(haven)
+data=read_sav("ABLACIO_FA_REMOSTREIG.sav")
+
+library(dplyr)
+data=data %>%
+  mutate(across(where(~all(unique(.x) %in% c(0,1,2))), as.factor))
+summary(data)
+```
+### b)
+
+$$
+H_0: \mu_{tec_1}= \mu_{tec_2}\\
+H_1: \mu_{tec_1} \neq \mu_{tec_2}
+$$
+
+```{r}
+taula=table(data$TECHNIQUE,data$RECURRENCE)
+taula_prop=prop.table(taula,margin=1)
+
+strue=abs(taula_prop[2,2]-taula_prop[1,2])
+
+set.seed(123)
+nr=10000
+st=numeric(nr)
+cnt=0
+n=nrow(data)
+
+for (i in 1:nr) {
+  data_perm=data
+  data_perm$RECURRENCE=sample(data$RECURRENCE, n)
+  
+  # Calculem la diferència permutada amb prop.table
+  tabla_perm=table(data_perm$TECHNIQUE, data_perm$RECURRENCE)
+  prop_perm=prop.table(tabla_perm, margin = 1)
+  st[i]=prop_perm[1, 2] - prop_perm[2, 2]
+  
+  if (st[i] & abs(st[i]) >= abs(strue)) cnt=cnt + 1
+}
+
+pvalue=cnt / nr
+print(paste("p-valor:", pvalue))
+```
+
+Com el pvalue= `r pvalue`, > 0.05, ens quedem amb la hipòtesi nula i no podem dir que les técniques siguin diferents.
+
+# Exercici 2
+
+Un equip mèdic vol determinar si el conjunt de variables Edat i Nivell de Proteïna permet explicar de forma robusta el Temps de Recuperació en pacients post-ictus. Es sospita que el model podria no complir les assumpcions de normalitat a causa de la mida reduïda de la mostra ($n = 15$), per la qual cosa s’ha decidit validar la significança global del model mitjançant mètodes no paramètrics.
+
+El model teòric és:
+$$Recuperació=\beta_0+\beta_2\cdot Edat+\beta_2\cdot Proteina+\epsilon$$
+
+```{r}
+# Creem el dataframe amb les dades
+edat=c(45, 50, 62, 71, 55, 48, 66, 59, 70, 52, 44, 68, 61, 53, 57)
+proteina=c(43.16097, 36.75916, 40.00582, 47.05449, 26.57487, 33.90364, 21.91258, 45.04896, 43.52799, 18.15528, 48.17006, 20.63390, 33.30869, 23.84805, 45.43557)
+recuperacio=c(20, 22, 30, 35, 25, 21, 32, 28, 38, 24, 19, 33, 31, 23, 27)
+
+dades_ictus=data.frame(Edat = edat, Proteina = proteina, Recuperacio = recuperacio)
+```
+
+**a) Ajustem el model de regressió lineal múltiple i identifiquem l'estadístic $F$ global del model**
+
+```{r}
+model_ictus=lm(Recuperacio ~ Edat + Proteina, data = dades_ictus)
+
+smod=summary(model_ictus);smod
+
+# F global real i el guardem per utilitzar-lo en el test permutacional
+F_real=summary(model_ictus)$fstatistic[1]
+print(paste("L'estadístic F global del model és:", round(F_real, 4)))
+```
+
+### b)
+
+$$
+H_0: \beta_1=\beta_2=0
+$$
+
+# Exercici 3
+
+
+a)
+
+No és adequat fer una ANOVA convencional, ja que, aquesta prova, calcula diferencies entre mitjanes i no es capaç de detectar tendències com la de la nostra hipòtesi alternativa ($H_A : m1 \le m2 \le m3 \le m4$)
+
+```{r}
+x1=c(100, 75, 65, 40, 73, 65, 50, 30, 45, 50, 45, 55)
+x2=c(85, 45, 80, 28, 75, 70, 65, 55, 50, 40)
+x3=c(96, 58, 95, 90, 65, 80, 85, 95, 82)
+x4=c(93, 120, 65, 105, 115, 82, 99, 87, 100, 90, 78, 95, 93, 88, 110)
+valors=c(x1, x2, x3, x4)
+grups=factor(c(rep("X1", length(x1)), rep("X2", length(x2)),
+rep("X3", length(x3)), rep("X4", length(x4))))
+dades=data.frame(profunditat = valors, excavacio = grups)
+
+### c)
+
+rangs=rank(dades$profunditat, ties.method = "average")
+
+R1=mean(rangs[grups == "X1"])
+R2=mean(rangs[grups == "X2"])
+R3=mean(rangs[grups == "X3"])
+R4=mean(rangs[grups == "X4"])
+
+T_obs=3*R4 + R3 - 3*R1 - R2
+T_obs
+
+### d)
+
+nr=10000
+T_perm=numeric(nr)
+
+for (i in 1:nr) {
+  val_perm=sample(dades$profunditat, length(dades$profunditat))
+  
+  rangs_perm=rank(val_perm, ties.method = "average")
+  
+  R1p=mean(rangs_perm[grups == "X1"])
+  R2p=mean(rangs_perm[grups == "X2"])
+  R3p=mean(rangs_perm[grups == "X3"])
+  R4p=mean(rangs_perm[grups == "X4"])
+  
+  T_perm[i]=3*R4p + R3p - 3*R1p - R2p
+}
+
+hist(T_perm,main = "Distribució permutacional de T",xlab = "T permutat",
+     col = "lightblue", border = "black",xlim = c(-100,100))
+abline(v = T_obs, col = "red", lwd = 2)
+legend("topright", legend = paste("T observat =", round(T_obs,2)),
+       col = "red", lwd = 2)
+
+pvalue=mean(T_perm >= T_obs);pvalue
+```
+
+Com que el P-valor és `r pvalue` <0.05, rebutgem $H=0$ i ens quedem amb l'alternativa : $H_A : m1 \le m2 \le m3 \le m4$

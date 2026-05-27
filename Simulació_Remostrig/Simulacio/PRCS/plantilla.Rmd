@@ -1,0 +1,12 @@
+---
+title: 'Pràctica 1'
+author: "Iker Fernández Cabanillas (1704341) Enola Garcia Carbó (1708253)"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+classoption: 11pt, a4paper
+header-includes:
+- \usepackage{geometry}
+- \geometry{top=1in,left=1in,bottom=1in,right=1in}
+---
+

@@ -1,0 +1,27 @@
+---
+title: "Llista1_M.Avan"
+author: "Iker Fernández Cabanillas"
+date: "2026-02-23"
+output: html_document
+---
+
+5:
+
+a) Sí, verifiquem, trobant totes les probabilitats faltants de la taula, es verifica amb:
+
+$$
+P(A=T, B=T) = P(A=T)\cdot P(B=T)
+$$
+
+b) S'anomena Selection Bias, biaix de selecció.
+
+Per demostrar-ho:
+
+Condicionant a un valor de C, veure que A i B no són independents:
+
+$$
+P(A=T, B=T | C=T) \neq P(A=T |C=T) \cdot P(B=T|C=T)
+$$
+
+Comprobar-ho amb les que faci falta fins que una resulti.
+

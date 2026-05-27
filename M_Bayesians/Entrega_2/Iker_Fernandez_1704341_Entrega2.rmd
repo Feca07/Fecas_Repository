@@ -1,0 +1,243 @@
+---
+title: "Entrega 2 - M.Bayes"
+author: "Iker Fernández Cabanillas"
+date: "2026-03-24"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Exercici 1:
+
+En un curs amb 120 alumes, 17 suspenen el primer parcial.
+
+De cara l'examen final:
+
+- Quin és l'interval de credibilitat de la proporció $\theta$ d'aprovar amb un priori no informatiu?
+
+```{r}
+n=120
+x=103
+
+###Beta (1,1)
+alpha_post1=1+x ;alpha_post1
+beta_post1 =1+(n - x) ;beta_post1
+
+ic1=qbeta(c(0.025, 0.975), alpha_post1, beta_post1);ic1
+```
+
+- I amb un prior Beta amb $\alpha = 40$, $\beta = 1$?
+
+```{r}
+###Beta(40,1)
+alpha_post2=40+x ;alpha_post2
+beta_post2 =1+(n - x) ;beta_post2
+
+ic2=qbeta(c(0.025, 0.975), alpha_post2, beta_post2);ic2
+
+###Gràfic
+theta=seq(0, 1, length.out = 1000)
+plot(theta, dbeta(theta, alpha_post1, beta_post1), type = "l",
+     col = "#ff1245", lwd = 2, ylab = "Densitat", xlab = expression(theta),
+     main = "Distribucions posteriors")
+lines(theta, dbeta(theta, alpha_post2, beta_post2), col = "#BB9", lwd = 2)
+legend("topleft", legend = c("Prior no inf. Beta(1,1)", "Prior Beta(40,1)"),
+       col = c("#ff1245", "#BB9"), lwd = 2)
+```
+
+Per tant, segons els nostres resultats, podem observar que sense prior informativa, és a dir, basant-se molt en les dades, l'interval conté valors una mica més petits que amb la prior optimista (beta(40,1)), la qual al incorporar una informació prèvia molt favorable, desplaça la distribució posterior cap a la dreta.
+
+### Exercici 2:
+
+Suposem que teniu una distribució prèvia $\textrm{Beta}(4,4)$  sobre la probabilitat $\theta$ que una moneda doni una "cara" quan es llença. La moneda es llença deu vegades de manera independent i les "cares" apareixen menys de 3 vegades.
+
+No us diuen quantes cares s'han vist, només que el nombre és inferior a 3. 
+
+- Calculeu la vostra densitat posterior exacta (fins a una constant de proporcionalitat) per a $\theta$ i dibuixeu-la.
+
+En aquest cas, com que el número d'èxits no ens ho donen, només que és inferior a 3:
+
+Escribim la Likelihood per a una binomial en aquest cas:
+
+$$
+\begin{aligned}
+P(X=k|\theta) &= \binom{10}{k} \theta^k (1-\theta)^{10-k} \\
+P(X<3|\theta) &= \sum_{k=0}^{k} \binom{10}{k} \theta^k (1-\theta)^{10-k}
+\end{aligned}
+$$
+
+Per tant, la likelihood queda com:
+
+$$
+L(\theta) = (1-\theta)^{10} +10 \theta(1-\theta)^9 + 45 \theta^2 (1-\theta)^8
+$$
+
+Calculem la posterior:
+
+$Posterior \propto Likelihood \cdot prior$
+
+$$
+\pi(\theta|X<3)\propto[(1-\theta)^{10}+10\theta(1-\theta)^9 + 45\theta^2(1-\theta)^8] \cdot (\theta^3 (1-\theta)^3)
+$$
+
+Això ho resoldrem i graficarem usant R:
+
+```{r}
+theta=seq(0, 1, length.out = 1000)
+
+prior=dbeta(theta, 4, 4)
+
+likelihood=dbinom(0,10,theta)+dbinom(1, 10, theta)+dbinom(2, 10, theta)
+
+posterior=likelihood*prior
+
+plot(theta, posterior, type = "l", col = "darkgreen", lwd = 2,main = "Posterior",
+     xlab = expression(theta), ylab = "Densitat")
+```
+
+### Exercici 4:
+
+Es fa un estudi de la probabilitat $\theta$ de què una dona entre 60 i 69 anys doni positiu en càncer so té un historial familiar amb casos de càncer. A l'estudi participen 300 dones amb aquestes característiques, de les quals 14 donen positiu.
+
+- Calcula el likelihood $\mathcal{L}(X|\theta)$
+
+$$
+X\sim Binomial(300,\theta)\\
+L(\theta|x)= \binom{300}{14}\theta^{14}(1-\theta)^{286} \\
+\propto L(\theta|x)= \theta^{14}(1-\theta)^{286}
+$$
+
+Segons un expert, la seva experiència en el cap indica que aquesta probabilitat és menor del %5.
+
+- Fes servir un prior uniforme de 0 a 5% per calcular la densitat posteriori.
+
+Si tenim que $\theta<5%$, $\theta \sim Uniforme(0,0.05)$
+
+$$
+p(\theta)= \frac{1}{0.05}=20\ si \ \theta \in \ [0,0.05]
+$$
+aplicant Bayes:
+ 
+$$
+p(\theta|x) \propto L(\theta) \cdot p(\theta)
+\propto \theta^{14}(1-\theta)^{286} \cdot \mathbb{1}_{[0,0.05]}
+$$
+
+És a dir, trunquem la Beta en la probabilitat donada per l'expert.
+
+- Calcula el valor estimat i l'interval de credibilitat centrat del $95\%$ per a $\theta$, per tant:
+
+```{r}
+theta=seq(0, 0.05, length.out = 10000)
+
+likelihood=theta^14*(1-theta)^286
+
+prior=dunif(theta,0,0.05)
+
+posterior_raw=likelihood*prior
+
+###Normalitzem
+delta=theta[2]-theta[1]
+constante=sum(posterior_raw)*delta
+posterior=posterior_raw/constante
+
+media_post=sum(theta*posterior)*delta ; media_post
+
+cdf=cumsum(posterior)*delta
+ic_l=theta[which(cdf >= 0.025)[1]]
+ic_h=theta[which(cdf >= 0.975)[1]]
+paste("[",ic_l,",",ic_h,"]")
+```
+
+### Exercici 6:
+
+Volem calibrar una balança de precisió fent una sèrie de mesures amb un objecte calibrat.
+
+Fes la inferència Bayesiana de $\sigma^2$ fent servir la mesura dels pesos:
+
+w = c(2.64, 2.67, 2.65, 2.67, 2.65) # g
+
+```{r}
+w = c(2.64, 2.67, 2.65, 2.67, 2.65)
+```
+
+- Assumeix que la massa de l'objecte calibrat és $\mu =  2.6g$ i calcula la seva precisió $\sigma^2$ fent servir un prior $\pi(\sigma^2) \propto  1/\sigma^4$.
+
+```{r}
+mu=2.6
+
+n=length(w)
+S=sum((w-mu)^2)
+
+alpha=n/2+1;alpha
+beta =S/2;beta
+```
+
+- Calcula l'estimació puntual i l'interval per una credibilitat del $95\%$
+
+```{r}
+post_mean=beta/(alpha-1);post_mean
+
+post_mo=beta/(alpha+1);post_mo
+
+
+ci_95=c(
+  lower=1/qgamma(0.975, shape=alpha, rate=beta),
+  upper=1/qgamma(0.025, shape=alpha, rate=beta))
+
+ci_95
+```
+
+### Exercici 7:
+
+- Demostra que el prior de Jeffreys per la distribució de Poisson és:
+
+$$
+\pi_J (\lambda) \propto \frac{1}{\sqrt{\lambda}}
+$$
+
+Per a $X \sim \text{Poisson}(\lambda)$, la log-versemblança és:
+$$
+\ell(\lambda) = -\lambda + x \log \lambda - \log x!
+$$
+
+Derivades:
+$$
+\frac{\partial \ell}{\partial \lambda} = -1 + \frac{x}{\lambda} \implies \frac{\partial^2 \ell}{\partial \lambda^2} = -\frac{x}{\lambda^2}
+$$
+
+Informació de Fisher:
+$$
+I(\lambda) = -E\left[ \frac{\partial^2 \ell}{\partial \lambda^2} \right] = \frac{E[X]}{\lambda^2} = \frac{\lambda}{\lambda^2} = \frac{1}{\lambda}
+$$
+
+Prior de Jeffreys:
+$$
+\pi_J(\lambda) \propto \sqrt{I(\lambda)} = \sqrt{\frac{1}{\lambda}} = \frac{1}{\sqrt{\lambda}}
+$$
+
+- Calcula el prior de Jeffreys per a una distribució normal amb $\sigma^2$ coneguda.
+
+Per a $X \sim N(\mu, \sigma^2)$ amb $\sigma^2$ constant, la log-versemblança és:
+
+$$
+\ell(\mu) = C - \frac{(x-\mu)^2}{2\sigma^2}
+$$
+
+Derivades:
+$$
+\frac{\partial \ell}{\partial \mu} = \frac{x-\mu}{\sigma^2} \implies \frac{\partial^2 \ell}{\partial \mu^2} = -\frac{1}{\sigma^2}
+$$
+
+Informació de Fisher:
+$$
+I(\mu) = -E\left[ -\frac{1}{\sigma^2} \right] = \frac{1}{\sigma^2}
+$$
+
+Prior de Jeffreys:
+$$
+\pi_J(\mu) \propto \sqrt{I(\mu)} = \sqrt{\frac{1}{\sigma^2}} = \frac{1}{\sigma}
+$$

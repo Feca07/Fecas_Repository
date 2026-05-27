@@ -1,0 +1,351 @@
+---
+title: "Pràctica 4"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+# PART 1: CONSTRUCCIÓ D'UN MODEL DE PS
+## Importació de dades
+coses a fer: Lectura de les dades en el sistema de programari estadístic
+escollit
+
+```{r}
+library(rlang)
+library(haven)
+library(dplyr)
+
+baseline <- read_sas("baseline.sas7bdat",NULL)
+outcomes <- read_sas("outcomes.sas7bdat",NULL)
+formats <- read_sas("formats.sas7bdat", NULL)
+```
+
+
+## Qualitat de les dades
+coses a fer: veure si les dades estan preparades i son vàlides per a
+l’anàlisi estadística: valors extrems, discrepàncies aparents, missing values. En cas contrari, estratègies a seguir.
+
+```{r,results=F,echo=F}
+data <- baseline %>%
+  mutate(
+    across(where(~ all(.x %in% c(0, 1, NA), na.rm = TRUE)), 
+           ~factor(.x, levels = c(0, 1), labels = c("No", "Si"))),
+    Volume     = factor(Volume, levels = c("No", "Si"), labels = c("low", "high")),
+    Gender_Don = factor(Gender_Don, levels = c("No", "Si"), labels = c("Female", "Male")),
+    Gender_Rec = factor(Gender_Rec, levels = c("No", "Si"), labels = c("Female", "Male")),
+    treat      = factor(treat, levels = c("No", "Si"), labels = c("SRR", "NRP"))
+  )
+```
+
+## Característiques basals
+
+### Comparació de les característiques basals
+
+Per avaluar l'equilibri inicial entre els grups de tractament (NRP vs. SRR), s'han seleccionat proves estadístiques segons la naturalesa de cada variable:
+- Variables quantitatives paramètriques: S'utilitza el t-test per comparar mitjanes (ex: edats i MELD).
+
+- Variables quantitatives no paramètriques: S'aplica el test de Wilcoxon per a variables amb distribucions asimètriques o temps d'isquèmia.
+
+- Variables categòriques: S'utilitza el test de Chi-quadrat (o Fisher si cal) per comparar proporcions.
+
+### Identificació de les variables per a l'anàlisi interferencial
+Amb l'objectiu de minimitzar el biaix de selecció i simular un assaig aleatoritzat, s'han identificat les següents covariables per a la construcció del Propensity Score (PS):
+
+1. Donant: Edat, sexe, causa de la mort i estada a l'UCI.
+2.Isquèmia: Temps d'isquèmia calenta (total i funcional) i isquèmia freda.
+3.Preservació: Tipus de líquid de preservació (UW, HTK o Celsior).
+4.Receptor: Edat, sexe, MELD score i indicació del trasplantament (Cirrosi, HCC, etc.).
+5.Centre: Volum de trasplantaments del centre (Variable Volume).
+
+```{r}
+library(tableone)
+
+vars_tab2 <- c("EDAD_DON", "Gender_Don", "Cause_death_CVA", "Cause_death_Anoxia", 
+               "Cause_death_TBI", "Cause_death_Other", "TmUCILtsv", 
+               "TmIsqCalTotAbd", "TmIsqCalFxAbd", "TIEMPOISQUEMIAFR_A_RETH", 
+               "LIQUIDOPRESERV_UW_IGL1", "LIQUIDOPRESERV_HTK", "LIQUIDOPRESERV_CELSIOR")
+
+non_normal <- c("TmUCILtsv", "TmIsqCalTotAbd", "TmIsqCalFxAbd", "TIEMPOISQUEMIAFR_A_RETH")
+
+taula2_obj <- CreateTableOne(vars = vars_tab2, strata = "treat", data = data)
+
+tbl2 <- print(taula2_obj, nonnormal = non_normal, smd = TRUE, printToggle = FALSE)
+colnames(tbl2) <- c("SRR", "NRP", "p", "test", "SMD")
+
+vars_tab3 <- c("EDAD_REC_TX", "Gender_Rec", "MELDSCORE", "Volume", 
+               "FIN_INDIC_reTx_fulmi", "FIN_INDIC_HCC", "FIN_INDIC_Cirr", "FIN_INDIC_Other")
+
+taula3_obj <- CreateTableOne(vars = vars_tab3, strata = "treat", data = data)
+
+tbl3 <- print(taula3_obj, smd = TRUE, printToggle = FALSE)
+colnames(tbl3) <- c("SRR", "NRP", "p", "test", "SMD")
+
+tbl2_final <- tbl2[, -4] 
+colnames(tbl2_final) <- c("SRR", "NRP", "P_valor", "SMD")
+```
+
+```{r}
+library(kableExtra)
+library(knitr)
+
+kable(tbl2_final, 
+      caption = "\\label{tab:tab2}Característiques del donant i de l'empelt (Anàlisi Crua)", 
+      align = "lccc", 
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), 
+                full_width = FALSE, 
+                position = "center",
+                font_size = 8) %>%
+  # Indentació per a les subcategories segons el model de l'article
+  add_indent(c(4:7, 12:14))
+
+kable(tbl3, caption = "\\label{tab:tab3}Característiques del receptor i trasplantament (Raw)", align = "lcccc") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), 
+                font_size = 10) %>% 
+  add_indent(c(6:9))
+```
+
+
+
+
+## Disseny d'estudi
+coses a fer: Discussió sobre el possible disseny de l’estudi
+
+
+```{r calcul_ps}
+data$treat_num <- ifelse(data$treat == "NRP", 1, 0)
+
+formula_ps <- treat_num ~ EDAD_DON+Cause_death_Anoxia+Cause_death_CVA+TmUCILtsv+ sqrt(TmUCILtsv) +TmIsqCalTotAbd +log(TmIsqCalFxAbd) +TIEMPOISQUEMIAFR_A_RETH+log(TIEMPOISQUEMIAFR_A_RETH) +LIQUIDOPRESERV_UW_IGL1 + LIQUIDOPRESERV_HTK + EDAD_REC_TX+ MELDSCORE + FIN_INDIC_Cirr+FIN_INDIC_Other+log(TmUCILtsv + 1)+Gender_Rec
+
+
+modelo_ps <- glm(formula_ps, data = data, family = binomial())
+
+data$ps <- predict(modelo_ps, type = "response")
+
+###Gràfic :
+
+library(ggplot2)
+
+ggplot(data, aes(x = ps, fill = treat)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Propensity Score comú",
+       x = "Probabilitat de rebre NRP",
+       y = "Densitat",
+       fill = "Grup") +
+  theme_minimal()
+
+##########################################################
+##Comentar gràfic IMPORTANT
+##########################################################
+```
+
+**COMENTAR GRÀFIC**
+
+```{r}
+library(survey)
+
+# ── 1. PROPORCIONS MARGINALS (p0 i p1
+
+p1 <- mean(data$treat == "NRP")  
+p0 <- mean(data$treat == "SRR")  
+
+
+data <- data %>%
+  mutate(
+    IPTW = ifelse(treat_num == 1,
+                  p1 / ps,
+                  p0 / (1 - ps))
+  )
+
+summary(data$IPTW)
+
+data_iptw <- svydesign(ids = ~1, data = data, weights = ~IPTW)
+
+tabIPTW2 <- svyCreateTableOne(vars = vars_tab2, strata = "treat", data = data_iptw)
+tbl2_iptw <- print(tabIPTW2, nonnormal = non_normal, smd = TRUE, printToggle = FALSE)
+colnames(tbl2_iptw) <- c("SRR (IPTW)", "NRP (IPTW)", "p", "test", "SMD")
+
+tbl2_iptw_final <- tbl2_iptw[, -4]
+colnames(tbl2_iptw_final) <- c("SRR (IPTW)", "NRP (IPTW)", "P_valor", "SMD")
+
+tabIPTW3 <- svyCreateTableOne(vars = vars_tab3, strata = "treat", data = data_iptw)
+tbl3_iptw <- print(tabIPTW3, smd = TRUE, printToggle = FALSE)
+colnames(tbl3_iptw) <- c("SRR (IPTW)", "NRP (IPTW)", "p", "test", "SMD")
+
+tbl3_iptw_final <- tbl3_iptw[, -4]
+colnames(tbl3_iptw_final) <- c("SRR (IPTW)", "NRP (IPTW)", "P_valor", "SMD")
+```
+
+```{r}
+kable(tbl2_iptw_final,
+      caption = "Característiques del donant i empelt (Anàlisi IPTW)",
+      align = "lccc", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                full_width = FALSE, font_size = 8) %>%
+  add_indent(c(4:7, 12:14))
+
+kable(tbl3_iptw_final,
+      caption = "Característiques del receptor i trasplantament (Anàlisi IPTW)",
+      align = "lccc", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                full_width = FALSE, font_size = 8) %>%
+  add_indent(c(6:9))
+```
+
+```{r}
+library(cobalt)
+
+love.plot(modelo_ps,
+          weights = data$IPTW,
+          method  = "weighting",
+          treat   = data$treat,
+          binary  = "std",
+          thresholds = c(m = 0.1),
+          var.order = "unadjusted",
+          title = "Balance de covariables: Cru vs IPTW")
+```
+
+
+\clearpage
+# PART 2: ANÀLISIS AMB IPTW
+coses a fer: En aquesta segona part de la pràctica usareu els pesos per a replicar l’anàlisi inferencial a de supervivència que es descriu a la figura 1 de l’article corresponent.
+
+## Descripció de la supervivència de l'empelt i dels pacients
+
+## Descripció de la supervivència de l'empelt i dels pacients
+
+Per avaluar l'eficàcia de la perfusió regional normotèrmica (NRP) davant la recuperació súper ràpida (SRR), s'utilitza la tècnica de **Kaplan-Meier**. Aquest mètode permet estimar la probabilitat de supervivència al llarg del temps, gestionant de manera adequada les dades censurades.
+
+En aquest apartat, les corbes es presenten ajustades mitjançant els pesos de probabilitat inversa del tractament (**IPTW**). L'ús d'aquests pesos permet generar una "pseudopoblació" on les característiques basals dels donants i receptors estan equilibrades, simulant així un escenari d'aleatorització. Cada pacient ja no compta com una unitat individual estàndard, sinó que la seva contribució a la corba de supervivència està ponderada per la seva probabilitat de rebre el tractament, la qual cosa permet una comparació directa i no esbiaixada de les dues tècniques.
+```{r, fig.height=7}
+library(survival)
+library(survminer)
+library(dplyr)
+
+# Unió de dades i preparació
+data_tot <- data %>%
+  mutate(PatNo = as.character(PatNo)) %>%
+  left_join(outcomes %>% mutate(PatNo = as.character(PatNo)), by = "PatNo")
+
+# Definició d'esdeveniments (0 = Censura, 1 = Esdeveniment)
+data_tot$Death_Event <- ifelse(data_tot$DeathYN == 1 | data_tot$DeathYN == "Si", 1, 0)
+data_tot$Graft_Event <- ifelse(data_tot$GraftNotFxYN == 1 | data_tot$GraftNotFxYN == "Si", 1, 0)
+
+fit_graft <- survfit(Surv(GraftNotFxTm, Graft_Event) ~ treat,
+                     data = data_tot, weights = IPTW)
+# 1. Gràfic Supervivència de l'Empelt amb IPTW arreglat
+g1 <- ggsurvplot(fit_graft, data = data_tot,
+                 surv.scale = "percent", # <-- Converteix l'eix Y de 0-1 a 0-100%
+                 pval = TRUE,
+                 risk.table = TRUE,
+                 title = "Supervivència de l'empelt - Ajust IPTW",
+                 xlab = "Temps (mesos)", ylab = "Supervivència (%)",
+                 legend.title = "", # Treu la paraula "Strata" de la llegenda
+                 legend.labs = c("SRR", "NRP"),
+                 palette = c("#333333", "#2E9FDF"))
+
+# 2. Gràfic Supervivència del Pacient amb IPTW arreglat
+fit_patient <- survfit(Surv(DeathTm, Death_Event) ~ treat,
+                       data = data_tot, weights = IPTW)
+g2 <- ggsurvplot(fit_patient, data = data_tot,
+                 surv.scale = "percent", # <-- Converteix l'eix Y
+                 pval = TRUE,
+                 risk.table = TRUE,
+                 title = "Supervivència del pacient - Ajust IPTW",
+                 xlab = "Temps (mesos)", ylab = "Supervivència (%)",
+                 legend.title = "",
+                 legend.labs = c("SRR", "NRP"),
+                 palette = c("#333333", "#2E9FDF"))
+
+print(g1)
+print(g2)
+```
+
+En les gràfiques generades, s'observen dos elements claus:
+
+- **Censures**: Es representen amb petites marques verticals a les corbes. Una censura passa quan un pacient abandona l'estudi o quan l'estudi s'acaba abans que el pacient pateixi el succés.
+
+- **Subjectes a risc**: Apareix una taula amb el nombre de pacients que continuen en seguiment en cada moment del temps. Són aquells que ni han perdut el fetge ni han mort, i dels quals encara tenim informació.
+
+Quant a la **supervivència de l'empelt**: La corba del grup NRP (blau) es manté clarament per sobre de la del grup SRR (negre). Això indica que els fetges processats amb la tècnica normotèrmica tendeixen a durar més temps sene fallar. En aquest subconjunt de dades, el risc de pèrdua de l'òrgan sembla menor amb NRP, tot i que el pvalor de 0.094 indica que la diferència és una tendència molt marcada però no arriba al llindar de la certesa estadística.
+
+Quant a la **supervivència del pacient**:  S'observa un patró similar, el grup NRP mostra una probabilitat de supervivència lleugerament superior al llarg dels 50 mesos de seguiment. El p-valor de 0,078 reforça que, tot i no ser una dada definitiva per si sola en aquest subconjunt, la tècnica NRP apunta cap a resultats més favorables per a la vida del receptor.
+
+
+**Ús de IPTW en les corbes de supervivència**
+Aquestes corbes es poden fer utilitzant la tècnica de ponderació per probabilitat inversa (IPTW).
+
+En un anàlisi de Kaplan-Meier convencional, cada persona compta com a "1". Però, com que el grup NRP i el grup SRR no eren iguals des del principi (per exemple, un grup podia tenir donants més joves que l'altre), no seria just comparar-los directament. L'IPTW assigna un "pes" matemàtic a cada pacient per equilibrar els dos grups. Així, en fer la figura amb IPTW, la corba no representa pacients individuals "reals", sinó una pseudopoblació equilibrada on l'única diferència rellevant és la tècnica de trasplantament utilitzada. Això permet que la comparació sigui justa, gairebé com si haguéssim fet un sorteig per decidir qui rebia cada tractament.
+
+## Anàlisi inferencial cru i ajustat de comparació de riscs en anàlisi de supervivència
+coses a fer: - Quina prova estadística inferencial faríeu?
+- Com calculeu els riscs?
+Fixeu-vos en l’article, material i mètodes i resultats com a referència
+
+
+## Algunes conclusions
+preguntes a respondre:
+
+3 Com compararíeu una variable continua gaussiana entre els dos grups, amb i sense ajust IPTW. Quins estadístics descriptius usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu.
+4 Com compararíeu una variable continua no-gaussiana entre els dos grups, amb i sense
+ajust IPTW. Quins estadístics descriptius usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu.
+5 Com compararíeu una variable binaria entre els dos grups, amb i sense ajust IPTW. Quins estadístics descriptius usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu.
+
+\clearpage
+# PART 3: ANÀLISIS AMB PS MATCHING (PSM)
+coses a fer: En aquesta tercera part de la pràctica usareu els pesos per a fer un matching dels dos grups i
+repliqueu l’anàlisi de supervivència que es descriu a la figura 1 de l’article corresponent.
+
+## Descripció de la supervivència de l'empelt i dels pacients
+coses a fer: Descriviu gràficament la funció de supervivència amb el mètode més habitual: la tècnica
+de Kaplan-Meier
+- Quina diferència trobeu en relació a l’anàlisi IPTW de la part 2 anterior
+
+## Anàlisi inferencial de comparació de riscs en anàlisi de supervivència
+coses a fer: - Té sentit fer cap ajust addicional després del matching?
+- Quina prova estadística inferencial faríeu?
+- Com calculeu els riscs?
+
+## Algunes conclusions
+preguntes a respondre:
+3 Com compararíeu una variable continua gaussiana entre els dos grups. Quins estadístics
+descriptius usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu. Té sentit
+fer cap ajust addicional després del matching?
+4 Com compararíeu una variable continua no-gaussiana entre els dos grups. Quins estadístics
+descriptius usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu. Té sentit
+fer cap ajust addicional després del matching?
+5 Com compararíeu una variable binaria entre els dos grups. Quins estadístics descriptius
+usaríeu per grup. Si coneixeu més d’una opció inferencial especifiqueu. Té sentit fer cap ajust
+addicional després del matching?
+6 Compareu la interpretació dels anàlisis de la pràctica 1 (regressió logística condicional)
+amb l’anàlisi IPTW i PSM de la pràctica 2. Caldria haver fet per la pràctica 2 alguna mena
+d’anàlisi de dades dependents o estratificat addicional? Perquè?
+
+\clearpage
+# PART 4: STROBE
+coses a fer: Avaluació de l’article original des del punt de vista estadístic i metodològic. Ajudeu-vos
+del STROBE statement (reviseu el “Tema 05. Scientific Recommendations for
+Reporting”)
+
+\clearpage
+\appendix
+
+
+\clearpage
+
+## Referències

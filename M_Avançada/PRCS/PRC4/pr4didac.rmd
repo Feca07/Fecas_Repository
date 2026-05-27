@@ -1,0 +1,584 @@
+---
+title: "Pràctica 4"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+bibliography: referencia.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+
+# PART 1: CONSTRUCCIÓ D'UN MODEL DE PS
+
+
+```{r import}
+library(rlang)
+library(haven)
+library(dplyr)
+
+baseline <- read_sas("baseline.sas7bdat",NULL)
+outcomes <- read_sas("outcomes.sas7bdat",NULL)
+formats <- read_sas("formats.sas7bdat", NULL)
+```
+
+## Qualitat de les dades
+
+L'exploració inicial de la base de dades ha confirmat que la qualitat de les dades és òptima per a procedir amb l'anàlisi estadística. S'ha verificat visualment i analíticament que no hi ha valors perduts (missing values). Així mateix, s'ha comprovat que les variables categòriques estan correctament codificades, i no s'han detectat valors extrems (outliers) ni discrepàncies aparents en les distribucions de les variables contínues. Per aquest motiu, no ha estat necessari aplicar cap estratègia d'imputació o exclusió de casos per a la realització de la pràctica.
+
+```{r qual,results=F}
+data <- baseline %>%
+  mutate(
+    across(where(~ all(.x %in% c(0, 1, NA), na.rm = TRUE)), 
+           ~factor(.x, levels = c(0, 1), labels = c("No", "Si"))),
+    Volume     = factor(Volume, levels = c("No", "Si"), labels = c("low", "high")),
+    Gender_Don = factor(Gender_Don, levels = c("No", "Si"), labels = c("Female", "Male")),
+    Gender_Rec = factor(Gender_Rec, levels = c("No", "Si"), labels = c("Female", "Male")),
+    treat      = factor(treat, levels = c("No", "Si"), labels = c("SRR", "NRP"))
+  )
+```
+
+## Característiques basals
+
+### Comparació de les característiques basals
+
+Per avaluar l'equilibri inicial entre els grups de tractament (NRP vs. SRR), s'han seleccionat proves estadístiques segons la naturalesa de cada variable:
+
+-   Variables quantitatives paramètriques: S'utilitza el t-test per comparar mitjanes (ex: edats i MELD).
+
+<!-- -->
+
+-   Variables quantitatives no paramètriques: S'aplica el test de Wilcoxon per a variables amb distribucions asimètriques o temps d'isquèmia.
+
+-   Variables categòriques: S'utilitza el test de Chi-quadrat (o Fisher si cal) per comparar proporcions.
+
+### Identificació de les variables per a l'anàlisi interferencial
+
+Amb l'objectiu de minimitzar el biaix de selecció i simular un assaig aleatoritzat, s'han identificat les següents covariables per a la construcció del Propensity Score (PS):
+
+1. Donant: Edat, sexe, causa de la mort i estada a l'UCI. 
+
+2. Isquèmia: Temps d'isquèmia calenta (total i funcional) i isquèmia freda. 
+
+3. Preservació: Tipus de líquid de preservació (UW, HTK o Celsior). 
+
+4. Receptor: Edat, sexe, MELD score i indicació del trasplantament (Cirrosi, HCC, etc.). 
+
+5. Centre: Volum de trasplantaments del centre (Variable Volume).
+\clearpage
+```{r interf}
+library(tableone)
+
+vars_tab2 <- c("EDAD_DON", "Gender_Don", "Cause_death_CVA", "Cause_death_Anoxia", 
+               "Cause_death_TBI", "Cause_death_Other", "TmUCILtsv", 
+               "TmIsqCalTotAbd", "TmIsqCalFxAbd", "TIEMPOISQUEMIAFR_A_RETH", 
+               "LIQUIDOPRESERV_UW_IGL1", "LIQUIDOPRESERV_HTK", "LIQUIDOPRESERV_CELSIOR")
+
+non_normal <- c("TmUCILtsv", "TmIsqCalTotAbd", "TmIsqCalFxAbd", "TIEMPOISQUEMIAFR_A_RETH")
+
+taula2_obj <- CreateTableOne(vars = vars_tab2, strata = "treat", data = data)
+
+tbl2 <- print(taula2_obj, nonnormal = non_normal, smd = TRUE, printToggle = FALSE)
+colnames(tbl2) <- c("SRR", "NRP", "p", "test", "SMD")
+
+vars_tab3 <- c("EDAD_REC_TX", "Gender_Rec", "MELDSCORE", "Volume", 
+               "FIN_INDIC_reTx_fulmi", "FIN_INDIC_HCC", "FIN_INDIC_Cirr", "FIN_INDIC_Other")
+
+taula3_obj <- CreateTableOne(vars = vars_tab3, strata = "treat", data = data)
+
+tbl3 <- print(taula3_obj, smd = TRUE, printToggle = FALSE)
+colnames(tbl3) <- c("SRR", "NRP", "p", "test", "SMD")
+
+tbl2_final <- tbl2[, -4] 
+colnames(tbl2_final) <- c("SRR", "NRP", "P_valor", "SMD")
+```
+
+```{r interf2}
+library(kableExtra)
+library(knitr)
+
+kable(tbl2_final, 
+      caption = "\\label{tab:tab2}Característiques del donant i de l'empelt (Anàlisi Crua)", 
+      align = "lccc", 
+      booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), 
+                full_width = FALSE, 
+                position = "center",
+                font_size = 8) %>%
+  # Indentació per a les subcategories segons el model de l'article
+  add_indent(c(4:7, 12:14))
+
+kable(tbl3, caption = "\\label{tab:tab3}Característiques del receptor i trasplantament (Raw)", align = "lcccc") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), 
+                font_size = 10) %>% 
+  add_indent(c(6:9))
+```
+
+Les taules \ref{tab:tab2} i \ref{tab:tab3} mostren les característiques basals dels dos grups d’estudi, SRR i NRP, abans de fer cap ajust. En general, algunes variables són semblants entre els grups, però també s’observen diferències inicials.
+
+A la taula \ref{tab:tab2}, les diferències més destacades apareixen en els temps d’isquèmia calenta i en el tipus de líquid de preservació, amb SMD elevades. En canvi, variables com l’edat del donant, el sexe o la causa de mort semblen més equilibrades.
+
+A la taula \ref{tab:tab3}, les diferències són menys marcades, tot i que variables com l’edat del receptor, el sexe i el MELD score mostren cert desequilibri inicial.
+
+Per tant, els grups SRR i NRP no són completament comparables d’entrada, fet que caldrà tenir en compte en les anàlisis posteriors.
+
+\clearpage
+## Disseny d'estudi
+
+coses a fer: Discussió sobre el possible disseny de l’estudi
+
+```{r figura_1, fig.cap="Propensity Score comú",fig.width=6,fig.height=4}
+data$treat_num <- ifelse(data$treat == "NRP", 1, 0)
+
+formula_ps <- treat_num ~ EDAD_DON+Cause_death_Anoxia+Cause_death_CVA+TmUCILtsv+ sqrt(TmUCILtsv) +TmIsqCalTotAbd +log(TmIsqCalFxAbd) +TIEMPOISQUEMIAFR_A_RETH+log(TIEMPOISQUEMIAFR_A_RETH) +LIQUIDOPRESERV_UW_IGL1 + LIQUIDOPRESERV_HTK + EDAD_REC_TX+ MELDSCORE + FIN_INDIC_Cirr+FIN_INDIC_Other+log(TmUCILtsv + 1)+Gender_Rec
+
+
+modelo_ps <- glm(formula_ps, data = data, family = binomial())
+
+data$ps <- predict(modelo_ps, type = "response")
+
+#Gràfic :
+
+library(ggplot2)
+
+ggplot(data, aes(x = ps, fill = treat)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Propensity Score comú",
+       x = "Probabilitat de rebre NRP",
+       y = "Densitat",
+       fill = "Grup") +
+  theme_minimal()+
+  theme(axis.title = element_text(size = 10),
+  plot.title = element_text(hjust = 0.5)
+)
+```
+
+El gràfic \ref{fig:figura_1} mostra la distribució del propensity score, és a dir, la probabilitat estimada de rebre NRP, separada segons el grup real de tractament. 
+
+S’observa que el grup SRR presenta una major concentració de pacients amb probabilitats baixes de rebre NRP, mentre que el grup NRP es concentra sobretot en valors més elevats del propensity score. Això indica que, abans de l’ajust, els dos grups no eren completament comparables i que el tractament rebut estava relacionat amb les característiques basals dels pacients.
+
+Tot i això, també s’observa una zona de solapament entre els dos grups, aproximadament en els valors intermedis del propensity score. Aquest solapament és important perquè indica que hi ha pacients comparables entre NRP i SRR, cosa que permet aplicar mètodes basats en propensity score com l’IPTW. 
+
+No obstant això, als extrems de la distribució hi ha menys solapament, especialment en valors molt baixos o molt alts del propensity score, fet que pot generar pesos més grans i cal tenir-ho en compte en la interpretació.
+\clearpage
+
+```{r dis2}
+library(survey)
+library(survey)
+library(dplyr)
+
+# 1. PROPORCIONS MARGINALS (p1 per a tractats, p0 per a controls)
+# "p1" és la probabilitat marginal de rebre NRP
+p1 <- mean(data$treat == "NRP")  
+# "p0" és la probabilitat marginal de rebre SRR
+p0 <- mean(data$treat == "SRR")  
+
+# 2. CÀLCUL DELS PESOS IPTW ESTABILITZATS
+# Canviem 'treat_num == 1' per 'treat == "NRP"'
+data <- data %>%
+  mutate(
+    IPTW = ifelse(treat == "NRP",
+                  p1 / ps,        # Pes per al grup NRP
+                  p0 / (1 - ps))  # Pes per al grup SRR
+  )
+
+# 3. DISSENY MOSTRAL PONDERAT
+data_iptw <- svydesign(ids = ~1, data = data, weights = ~IPTW)
+
+# 4. TAULES DE BALANÇ (Continuació del teu codi)
+# Taula 2: Donant i Empelt
+tabIPTW2 <- svyCreateTableOne(vars = vars_tab2, strata = "treat", data = data_iptw)
+tbl2_iptw <- print(tabIPTW2, nonnormal = non_normal, smd = TRUE, printToggle = FALSE)
+# Netegem la taula per a la memòria (treiem la columna 'test')
+tbl2_iptw_final <- tbl2_iptw[, -4]
+colnames(tbl2_iptw_final) <- c("SRR (IPTW)", "NRP (IPTW)", "P_valor", "SMD")
+
+# Taula 3: Receptor i Trasplantament
+tabIPTW3 <- svyCreateTableOne(vars = vars_tab3, strata = "treat", data = data_iptw)
+tbl3_iptw <- print(tabIPTW3, smd = TRUE, printToggle = FALSE)
+tbl3_iptw_final <- tbl3_iptw[, -4]
+colnames(tbl3_iptw_final) <- c("SRR (IPTW)", "NRP (IPTW)", "P_valor", "SMD")
+```
+
+```{r dis3}
+kable(tbl2_iptw_final,
+      caption = "\\label{tab:tab4}Característiques del donant i empelt (Anàlisi IPTW)",
+      align = "lccc", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                full_width = FALSE, font_size = 8) %>%
+  add_indent(c(4:7, 12:14))
+
+kable(tbl3_iptw_final,
+      caption = "\\label{tab:tab5}Característiques del receptor i trasplantament (Anàlisi IPTW)",
+      align = "lccc", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                full_width = FALSE, font_size = 8) %>%
+  add_indent(c(6:9))
+```
+
+Després d’aplicar l’ajust mitjançant IPTW, tal com es mostra a les taules \ref{tab:tab4} i \ref{tab:tab5}, s’observa una millora clara en l’equilibri de les característiques basals entre els grups SRR i NRP. En general, els p-valors deixen de mostrar diferències estadísticament significatives entre els grups i, sobretot, les diferències estandarditzades (SMD) es redueixen considerablement.
+
+Pel que fa a les característiques del donant i de l’empelt, recollides a la taula \ref{tab:tab4}, les variables que abans presentaven més desequilibri, com els temps d’isquèmia calenta total i funcional o el tipus de líquid de preservació, queden molt més equilibrades després de la ponderació. La majoria de SMD se situen per sota de 0.1, només la causa de mort : Anoxia està una mica per sobre amb 0.106, fet que indica un bon balanç entre els grups.
+
+En relació amb les característiques del receptor i del trasplantament, presentades a la taula \ref{tab:tab5}, també s’observa un bon equilibri després de l’IPTW. Variables com l’edat del receptor, el sexe i el MELD score presenten SMD baixes. Tot i que alguna variable, com el volum del centre o la indicació per hepatocarcinoma, manté una SMD lleugerament superior a 0.10, totes es mantenen dins d’un rang acceptable.
+
+```{r dis4}
+library(cobalt)
+
+love.plot(modelo_ps,
+          weights = data$IPTW,
+          method = "weighting",
+          treat = data$treat,
+          binary = "std",
+          thresholds = c(m = 0.1),
+          var.order = "unadjusted",
+          sample.names = c("Cru", "IPTW"),
+          title = "Balanç de covariables: Cru vs IPTW")
+```
+
+Aquest gràfic  mostra les diferències estandarditzades de mitjanes (SMD) abans i després d’aplicar l’ajust mitjançant IPTW. Els punts vermells representen l’anàlisi crua, mentre que els punts blaus representen l’anàlisi ajustada amb IPTW.
+
+En l’anàlisi crua, s’observa que diverses covariables presentaven un desequilibri important entre els grups SRR i NRP, ja que els punts vermells es troben allunyats del valor 0. Això passa especialment en variables relacionades amb el líquid de preservació i els temps d’isquèmia, com LIQUIDOPRESERV_HTK_Si, LIQUIDOPRESERV_UW_IGL1_Si, TmIsqCalFxAbd o log(TmIsqCalTotAbd).
+
+Després d’aplicar IPTW, els punts blaus es desplacen clarament cap al valor 0. Això indica que les diferències entre els dos grups s’han reduït i que les covariables queden molt més equilibrades. Per tant, el gràfic confirma visualment que la ponderació ha millorat el balanç entre SRR i NRP.
+
+Tot i que alguna variable pot quedar lleugerament allunyada del 0, el balanç global després de l’IPTW és molt millor que en l’anàlisi crua. Això dona suport a l’ús dels pesos IPTW per fer posteriorment una comparació més justa de la supervivència entre els dos grups.
+
+\clearpage
+
+# PART 2: ANÀLISIS AMB IPTW
+
+coses a fer: En aquesta segona part de la pràctica usareu els pesos per a replicar l’anàlisi inferencial a de supervivència que es descriu a la figura 1 de l’article corresponent.
+
+## Descripció de la supervivència de l'empelt i dels pacients
+
+Per avaluar l'eficàcia de la perfusió regional normotèrmica (NRP) davant la recuperació súper ràpida (SRR), s'utilitza la tècnica de **Kaplan-Meier**. Aquest mètode permet estimar la probabilitat de supervivència al llarg del temps, gestionant de manera adequada les dades censurades.
+
+En aquest apartat, les corbes es presenten ajustades mitjançant els pesos de probabilitat inversa del tractament (**IPTW**). L'ús d'aquests pesos permet generar una "pseudopoblació" on les característiques basals dels donants i receptors estan equilibrades, simulant així un escenari d'aleatorització. Cada pacient ja no compta com una unitat individual estàndard, sinó que la seva contribució a la corba de supervivència està ponderada per la seva probabilitat de rebre el tractament, la qual cosa permet una comparació directa i no esbiaixada de les dues tècniques.
+
+```{r supv, fig.height=6}
+library(survival)
+library(survminer)
+library(dplyr)
+
+# Unió de dades i preparació
+data_tot <- data %>%
+  mutate(PatNo = as.character(PatNo)) %>%
+  left_join(outcomes %>% mutate(PatNo = as.character(PatNo)), by = "PatNo")
+
+# Definició d'esdeveniments (0 = Censura, 1 = Esdeveniment)
+data_tot$Death_Event <- ifelse(data_tot$DeathYN == 1 | data_tot$DeathYN == "Si", 1, 0)
+data_tot$Graft_Event <- ifelse(data_tot$GraftNotFxYN == 1 | data_tot$GraftNotFxYN == "Si", 1, 0)
+
+fit_graft <- survfit(Surv(GraftNotFxTm, Graft_Event) ~ treat,
+                     data = data_tot, weights = IPTW)
+# 1. Gràfic Supervivència de l'Empelt amb IPTW arreglat
+g1 <- ggsurvplot(fit_graft, data = data_tot,
+                 surv.scale = "percent", # <-- Converteix l'eix Y de 0-1 a 0-100%
+                 pval = TRUE,
+                 risk.table = TRUE,
+                 title = "Supervivència de l'empelt - Ajust IPTW",
+                 xlab = "Temps (mesos)", ylab = "Supervivència (%)",
+                 legend.title = "", # Treu la paraula "Strata" de la llegenda
+                 legend.labs = c("SRR", "NRP"),
+                 palette = c("#333333", "#2E9FDF"))
+
+# 2. Gràfic Supervivència del Pacient amb IPTW arreglat
+fit_patient <- survfit(Surv(DeathTm, Death_Event) ~ treat,
+                       data = data_tot, weights = IPTW)
+g2 <- ggsurvplot(fit_patient, data = data_tot,
+                 surv.scale = "percent", # <-- Converteix l'eix Y
+                 pval = TRUE,
+                 risk.table = TRUE,
+                 title = "Supervivència del pacient - Ajust IPTW",
+                 xlab = "Temps (mesos)", ylab = "Supervivència (%)",
+                 legend.title = "",
+                 legend.labs = c("SRR", "NRP"),
+                 palette = c("#333333", "#2E9FDF"))
+
+print(g1)
+print(g2)
+```
+
+En les gràfiques generades, s'observen dos elements claus:
+
+-   **Censures**: Es representen amb petites marques verticals a les corbes. Una censura passa quan un pacient abandona l'estudi o quan l'estudi s'acaba abans que el pacient pateixi el succés.
+
+-   **Subjectes a risc**: Apareix una taula amb el nombre de pacients que continuen en seguiment en cada moment del temps. Són aquells que ni han perdut el fetge ni han mort, i dels quals encara tenim informació.
+
+Quant a la **supervivència de l'empelt**: La corba del grup NRP (blau) es manté clarament per sobre de la del grup SRR (negre). Això indica que els fetges processats amb la tècnica normotèrmica tendeixen a durar més temps sene fallar. En aquest subconjunt de dades, el risc de pèrdua de l'òrgan sembla menor amb NRP, tot i que el pvalor de 0.094 indica que la diferència és una tendència molt marcada però no arriba al llindar de la certesa estadística.
+
+Quant a la **supervivència del pacient**: S'observa un patró similar, el grup NRP mostra una probabilitat de supervivència lleugerament superior al llarg dels 50 mesos de seguiment. El p-valor de 0,078 reforça que, tot i no ser una dada definitiva per si sola en aquest subconjunt, la tècnica NRP apunta cap a resultats més favorables per a la vida del receptor.
+
+**Ús de IPTW en les corbes de supervivència** Aquestes corbes es poden fer utilitzant la tècnica de ponderació per probabilitat inversa (IPTW).
+
+En un anàlisi de Kaplan-Meier convencional, cada persona compta com a "1". Però, com que el grup NRP i el grup SRR no eren iguals des del principi (per exemple, un grup podia tenir donants més joves que l'altre), no seria just comparar-los directament. L'IPTW assigna un "pes" matemàtic a cada pacient per equilibrar els dos grups. Així, en fer la figura amb IPTW, la corba no representa pacients individuals "reals", sinó una pseudopoblació equilibrada on l'única diferència rellevant és la tècnica de trasplantament utilitzada. Això permet que la comparació sigui justa, gairebé com si haguéssim fet un sorteig per decidir qui rebia cada tractament.
+
+## Anàlisi inferencial cru i ajustat de comparació de riscs en anàlisi de supervivència
+
+Un cop visualitzades les corbes de supervivència, el següent pas és quantificar matemàticament quina diferència de risc hi ha entre utilitzar la tècnica NRP respecte a l'estàndard SRR, i comprovar si aquesta diferència és estadísticament significativa. 
+
+**Prova estadística inferencial**
+
+Per analitzar dades on importa no només si passa un esdeveniment (com la pèrdua de l'empelt o la mort), sinó quan passa, la prova estadística inferencial és el **model de regressió de riscos proporcionals de Cox**. Aquest és el mètode per avaluar les variables de temps fins a l'esdeveniment (*time-to-event outcomes*).
+
+En aquest estudi realitzem dues aproximacions amb aquest model:
+
+1. **Anàlisi cru (Raw analysis):** S'aplica el model de Cox directament sobre les dades originals. Aquest model ens diu què va passar a la realitat, però està esbiaixat perquè sabem que els dos grups de pacients tenien característiques basals diferents (factors de confusió).
+
+2. **Anàlisi ajustat per IPTW:** S'aplica el mateix model de Cox, però incorporant els "pesos" (IPTW) que hem calculat a la primera part de l'estudi. En fer-ho, el model simula que els dos grups són idèntics en característiques, donant-nos l'efecte aïllat de la tècnica de preservació de l'òrgan. 
+
+**Càlcul de riscs**
+
+Els riscs es calculen extraient el **Hazard Ratio (HR)** acompanyat del seu **interval de confiança del 95\% (95\% CI)**. 
+
+El Hazard Ratio es pot entendre com la "velocitat" o probabilitat instantània de patir el mal esdeveniment en un grup comparat amb l'altre:
+
+* Si el HR és igual a 1, vol dir que el risc és idèntic en els dos grups.
+
+* Si el HR és superior a 1, el grup estudiat té més risc.
+
+* Si el HR és inferior a 1, el grup estudiat (en aquest cas, NRP) té menys risc o està "protegit".
+
+
+**Resultats de l'anàlisi de riscos:**
+
+En executar el model de regressió de Cox ajustat per IPTW sobre el nostre subconjunt de dades per avaluar la **supervivència de l'empelt**\footnote{Veure Codi a l'Appendix \ref{cox}}, s'ha obtingut un Hazard Ratio (HR) de **0.4068** per al grup tractat amb NRP, amb un interval de confiança del 95\% situat entre 0.1698 i 0.97 i un p-valor estadísticament significatiu (**p = 0.0437**). 
+
+Com que el HR és clarament inferior a 1 i l'interval de confiança no inclou l'1, podem concloure de manera rigorosa que la utilització de la tècnica de perfusió regional normotèrmica (NRP) exerceix un efecte protector significatiu. Concretament, l'ús de l'NRP redueix el risc de pèrdua de l'empelt en aproximadament un 59\% en comparació amb la recuperació súper ràpida (SRR). 
+
+Aquests resultats s'alineen perfectament amb les conclusions publicades a l'article original [@hessheimer2019normothermic], on s'estimava un HR de 0.39, validant la solidesa d'aquesta tècnica de preservació a l'hora de millorar la viabilitat de l'òrgan a llarg termini.
+
+
+Finalment, pel que fa a la **supervivència del pacient**\footnote{Veure Codi a l'Appendix \ref{cox}}, l'anàlisi de Cox ajustat per IPTW mostra un Hazard Ratio de **0.48** (95\% CI 0.18 - 1.29, **p = 0.146**). Tot i que l'estimació puntual del HR suggereix que el grup tractat amb NRP presenta una reducció del risc de mortalitat d'aproximadament un 52\% respecte al grup SRR, l'interval de confiança creua el valor neutre (1) i el p-valor és superior al llindar del 0.05. Per tant, aquesta diferència protectora no assoleix significació estadística en la nostra mostra. 
+
+Cal destacar que aquesta manca de significació estadística per a la supervivència global del pacient és coherent amb els resultats de l'estudi original [@hessheimer2019normothermic], on es va reportar un HR de 0.53 i un p = 0.135. Això suggereix que, tot i que l'NRP salva de manera significativa la viabilitat de l'òrgan (com s'ha vist anteriorment), el seu impacte directe en la mortalitat global del pacient és més difícil de provar estadísticament, possiblement perquè la supervivència del pacient depèn de molts altres factors clínics posteriors al trasplantament.
+
+```{r models_cox, eval=FALSE}
+# 1. Models per a la Supervivència de l'Empelt
+cox_graft_cru <- coxph(Surv(GraftNotFxTm, Graft_Event) ~ treat, data = data_tot)
+cox_graft_iptw <- coxph(Surv(GraftNotFxTm, Graft_Event) ~ treat, data = data_tot, weights = IPTW, 
+                        robust = TRUE)
+
+# 2. Models per a la Supervivència del Pacient
+cox_patient_cru <- coxph(Surv(DeathTm, Death_Event) ~ treat, data = data_tot)
+cox_patient_iptw <- coxph(Surv(DeathTm, Death_Event) ~ treat, data = data_tot, weights = IPTW, 
+                          robust = TRUE)
+
+summary(cox_graft_iptw)
+summary(cox_patient_iptw)
+```
+
+## Algunes conclusions
+
+**Comparació de variables contínues gaussianes**
+
+Per comparar variables que segueixen una distribució normal (com l'edat):  
+- **Sense ajust (Cru)**: Es descriurien amb la mitjana i la desviació estàndard. La prova inferencial seria el test t d'Student per a mostres independents.
+
+- **Amb ajust IPTW**: Es farien servir les mitjanes ponderades pels pesos IPTW. L'anàlisi inferencial es faria mitjançant una regressió lineal ponderada (especificant l'IPTW com a pes).
+
+
+**Comparació de variables contínues no-gaussianes**
+
+Per a variables que no segueixen una distribució normal (com els temps d'isquèmia):  
+
+- **Sense ajust (Cru)**: Es descriurien amb la mediana i el rang interquartílic. La prova habitual seria el test de Wilcoxon-Mann-Whitney.
+
+
+- **Amb ajust IPTW**: S'utilitzaria un ANOVA sobre les dades transformades en rangs incorporant els pesos de l'IPTW. Això permet gestionar la falta de normalitat mentre s'aplica l'ajust.
+
+
+**Comparació de variables binàries**
+Per a variables de tipus Sí/No (com les complicacions biliars):  
+
+- **Sense ajust (Cru)**: Es descriurien amb freqüències i percentatges. S'utilitzaria el test de Chi-quadrat de Pearson.  
+
+- **Amb ajust IPTW**: S'utilitzarien percentatges ponderats. La prova inferencial seria la regressió logística ponderada (calculant l'Odds Ratio ajustat).
+
+
+\clearpage
+
+# PART 3: ANÀLISIS AMB PS MATCHING (PSM)
+
+## PSM
+En aquesta secció s'aplica la tècnica d'aparellament per Propensity Score (PSM), un mètode que busca simular els efectes d'un assaig clínic aleatoritzat a partir de dades observacionals. Mitjançant un algorisme d'aparellament (com el nearest neighbor matching), se seleccionen parelles de pacients —un del grup NRP i un del grup SRR— que presenten una probabilitat d'assignació al tractament gairebé idèntica segons les seves covariables basals.
+
+L'objectiu principal és replicar l'anàlisi de supervivència de l'article de @hessheimer2019normothermic utilitzant aquest subconjunt equilibrat, garantint que qualsevol diferència observada en el desenllaç (supervivència de l'empelt o del pacient) es pugui atribuir a la tècnica quirúrgica i no a diferències en les característiques del donant o del receptor.
+
+### Descripció de la supervivència de l’empelt i dels pacients
+
+```{r grafic_censures ,eval=FALSE}
+library(MatchIt)
+
+# REALITZAR EL MATCHING (1:1 per veïnatge més proper)
+# Utilitzem les covariables identificades a la Part 1 per equilibrar els grups
+match_obj <- matchit(treat ~ EDAD_DON + Gender_Don + Cause_death_CVA + TmUCILtsv + 
+                       TmIsqCalTotAbd + TmIsqCalFxAbd + TIEMPOISQUEMIAFR_A_RETH + 
+                       LIQUIDOPRESERV_UW_IGL1 + LIQUIDOPRESERV_HTK + 
+                       EDAD_REC_TX + Gender_Rec + MELDSCORE + Volume, 
+                     data = data, 
+                     method = "nearest", 
+                     distance = "logit")
+
+# Creem el dataset de la sub-població aparellada
+data_matched <- match.data(match_obj)
+
+# VERIFICACIÓ DEL BALANÇ (SMD)
+vars_balanc <- c("EDAD_DON", "Gender_Don", "TmIsqCalTotAbd", "MELDSCORE", "Volume")
+taula_balanc_psm <- CreateTableOne(vars = vars_balanc, strata = "treat", 
+                                   data = data_matched, test = FALSE)
+print(taula_balanc_psm, smd = TRUE)
+
+
+# UNIÓ AMB DADES DE SUPERVIVÈNCIA (Outcomes)
+final_matched <- data_matched %>%
+  left_join(outcomes, by = "PatNo")
+
+# DESCRIPCIÓ DE LA SUPERVIVÈNCIA (Kaplan-Meier)
+fit_km <- survfit(Surv(GraftNotFxTm, GraftNotFxYN) ~ treat, data = final_matched)
+
+g1 <- ggsurvplot(fit_km, 
+                 data = final_matched, 
+                 risk.table = TRUE,      # Taula de risc obligatòria
+                 censor = TRUE,          # Mostrar censures
+                 surv.scale = "percent", # Escala en percentatge
+                 legend.labs = c("SRR", "NRP"),
+                 title = "Figura 1: Supervivència de l'empelt (PSM)",
+                 xlab = "Temps (mesos)", ylab = "Supervivència (%)")
+print(g1)
+```
+
+
+
+Per avaluar la supervivència, s'utilitza la tècnica de **Kaplan-Meier**, que és el mètode no paramètric més habitual per estimar la funció de supervivència en presència de dades censurades. Aquesta representació gràfica permet visualitzar la probabilitat que un empelt o un pacient sobrevisqui al llarg del temps de seguiment. Seguint les bones pràctiques de report (com el STROBE statement), el gràfic ha d'incloure obligatòriament les marques de les censures (pacients que han sortit de l'estudi sense patir l'esdeveniment) i una taula de subjectes a risc a la part inferior. Aquesta taula és crucial en el PSM per observar com disminueix la mida de la mostra a mesura que avança el temps.
+ 
+ - Diferència amb l'anàlisi IPTW: La principal divergència metodològica és que, mentre l'IPTW utilitza tota la mostra original ponderant els individus per crear una "pseudo-població" equilibrada, el PSM redueix la mida mostral en descartar aquells subjectes que no troben una parella comparable dins del "common support". Tot i que això pot comportar una certa pèrdua de potència estadística, el PSM ofereix una comparació molt més intuïtiva ("pacient contra pacient") i sovint assoleix un equilibri de covariables superior en el subconjunt analitzat.
+ 
+ 
+### Anàlisi inferencial de comparació de riscs en supervivència
+
+```{r hazard_ratio, eval=FALSE}
+# 6. ANÀLISI INFERENCIAL (Model de Cox)
+# Calculem el Hazard Ratio (HR). Usem 'robust = TRUE' perquè el matching indueix dependència [9]
+model_cox_psm <- coxph(Surv(GraftNotFxTm, GraftNotFxYN) ~ treat, 
+                       data = final_matched, 
+                       robust = TRUE)
+summary(model_cox_psm)
+
+```
+
+
+L'anàlisi inferencial ens permet determinar si les diferències observades a les corbes de Kaplan-Meier són estadísticament significatives i quina és la magnitud de l'efecte del tractament.
+
+ - Ajust addicional (Estimació Doblement Robusta): Segons la teoria vista a l'assignatura, té sentit realitzar un ajust addicional després del matching si, en revisar la taula de balanç, encara persisteixen desequilibris en algunes variables crítiques (indicat per una Diferència Estandarditzada (SMD) $>$ 0.10 o 0.15) . Aquest enfocament "doblement robust" combina el matching amb un model de regressió per corregir la possible confusió residual.
+ 
+ - Prova estadística: Per a la comparació global de les corbes de supervivència s'aplica el Log-rank test, que contrasta la hipòtesi nul·la que no hi ha diferències entre els grups. Per quantificar l'efecte, s'utilitza el model de riscos proporcionals de Cox, que permet estimar la relació entre el tractament i el temps fins a l'esdeveniment.
+ 
+ -Càlcul de riscs: Els resultats s'expressen mitjançant el Hazard Ratio (HR). Un HR $<$ 1 (com el 0.53 per a pacients o 0.39 per a empelts trobat a l'article original) indica que la tècnica NRP actua com un factor protector, reduint el risc de pèrdua de l'empelt o mort en comparació amb la tècnica SRR. L'estimació s'acompanya del seu interval de confiança del 95% per indicar la precisió de la mesura i el valor p per determinar la significació estadística.
+
+
+## Conclusions de l'anàlisi amb PSM
+
+### Comparació de variables contínues gaussianes
+Per a una variable amb distribució normal (gaussiana), com podria ser l'edat del receptor o el pes en determinats subgrups, s'han d'utilitzar la mitjana i la desviació estàndard (SD) com a estadístics descriptius per grup. Des del punt de vista inferencial, en un context pre-matching s'utilitzaria el t-test de Student per a dades independents. No obstant això, un cop realitzat l'aparellament (PSM), s'introdueix una dependència artificial entre els grups (cada cas NRP està lligat a un control SRR similar); per tant, seria més precís utilitzar el t-test per a dades aparellades.
+
+Respecte a l'ajust addicional post-matching, @hessheimer2019normothermic suggereixen que té sentit realitzar-lo si el balanç no és perfecte. Si després del matching alguna variable crítica manté una Diferència Estandarditzada (SMD) $>$ 0.10 - 0.15, s'hauria d'incloure aquesta variable en un model de regressió (anàlisi "doblement robust") per corregir el desequilibri residual i minimitzar el biaix de selecció.
+
+### Comparació de variables contínues no gaussianes
+En variables que sovint no segueixen una llei normal, com els temps d'isquèmia (Total WIT o Functional WIT) o l'estada a la UCI (`TmUCILtsv`), els millors descriptius són la mediana i el rang interquartílic (IQR). Inferencialment, l'opció clàssica per a mostres independents és el test de Mann-Whitney U (també anomenat Wilcoxon rank-sum test).
+
+En el context del PSM, on les observacions estan aparellades, l'opció inferencial correcta seria el test de rangs amb signe de Wilcoxon per a dades dependents. L'ajust addicional mitjançant models multivariants o no paramètrics estaria justificat si, com s'ha observat a l'article original, existeixen variables molt desequilibrades en l'anàlisi crua (com el líquid de preservació HTK amb un SMD de 0.744) que el matching no hagi pogut equilibrar del tot.
+
+### Comparació de variables binàries
+
+Per a variables categòriques dicotòmiques (com el sexe del donant o la presència de complicacions biliars), s'utilitzen les freqüències absolutes (n) i els percentatges (\%). Per a la inferència en dades independents, s'aplica el test de Chi-quadrat de Pearson o el test exacte de Fisher si les freqüències esperades són baixes. Un cop realitzat el matching, per respectar l'estructura de parelles, s'hauria d'utilitzar el test de McNemar.
+
+Igual que en els casos anteriors, l'ajust post-matching mitjançant una regressió logística seria recomanable si persisteix confusió residual. L'objectiu és assegurar que l'efecte protector de la tècnica NRP sobre la pèrdua de l'empelt (HR $=$ 0.39 a l'article original) sigui atribuïble exclusivament a la intervenció i no a desequilibris en les indicacions del trasplantament.
+
+### Interpretació: Pràctica 1 vs. Pràctica 2 (IPTW i PSM)
+A la Pràctica 1, es va utilitzar la regressió logística condicional (clogit) per gestionar la dependència dades d'un disseny de casos i controls aparellats manualment per l'investigador (ràtio 1:4). En canvi, a la Pràctica 2, l'IPTW i el PSM utilitzen el Propensity Score per crear un equilibri en estudis de cohorts observacionals.
+
+És crucial entendre que tant el PSM com l'IPTW indueixen dependència en les dades. En el PSM, la dependència és directa pel vincle entre parelles; en l'IPTW, la ponderació fa que la "pseudo-població" no compleixi el requisit d'independència de les observacions. Per tant, hauria estat necessari realitzar una anàlisi de dades dependents o estratificades (com l'ús de variàncies robustes o el mètode clúster en els models de Cox). Sense aquesta consideració, els errors estàndard calculats podrien ser incorrectes (normalment infraestimats), cosa que portaria a intervals de confiança massa estrets i a una falsa sensació de precisió en l'efecte del tractament.
+
+\clearpage
+
+# PART 4: STROBE
+
+L’article de @hessheimer2019normothermic s’ha avaluat seguint els criteris generals del **STROBE statement**, ja que es tracta d’un estudi observacional de cohorts. STROBE recomana que en aquest tipus d’estudis s’informi clarament del disseny, la població, les variables, els mètodes estadístics, els possibles biaixos, els resultats principals i les limitacions de l’estudi.
+
+En general, l’article està força **ben reportat**. Els autors indiquen que és un estudi observacional de cohorts, descriuen el període d’estudi, la població inclosa i el seguiment. També defineixen l’exposició principal, és a dir, la tècnica de recuperació hepàtica utilitzada: normothermic regional perfusion (NRP) o super-rapid recovery (SRR). A més, descriuen els principals resultats d’interès, com les complicacions biliars, les lesions biliars isquèmiques, la pèrdua de l’empelt, la mort del pacient i la supervivència.
+
+Des del **punt de vista estadístic**, l’article utilitza mètodes adequats per a un estudi observacional: anàlisi descriptiva de les característiques basals, corbes de *Kaplan-Meier*, regressió logística per als resultats binaris i *regressió de Cox* per als resultats de supervivència. A més, com que els grups NRP i SRR no van ser assignats aleatòriament, els autors utilitzen propensity scores amb IPTW per intentar equilibrar les covariables i reduir el biaix de confusió. De fet, l’article especifica que la tècnica basada en propensity scores amb *IPTW* es va utilitzar per equilibrar les covariables entre els grups, i que es van utilitzar models logístics i de Cox per als resultats binaris i de temps fins a l’esdeveniment .
+
+Tot i això, hi ha una **imprecisió metodològica** important que cal destacar. En el *Lay summary*, l’article descriu l’estudi com un *“propensity-matched nationwide observational cohort study”*. Aquesta expressió pot portar a confusió, perquè en els mètodes no es descriu un propensity score matching, sinó una anàlisi amb inverse probability of treatment weighting (IPTW). El matching i l’IPTW són dues tècniques diferents: el matching emparella pacients similars entre els grups, mentre que l’IPTW assigna pesos als individus per crear una pseudopoblació equilibrada. Per tant, no sembla un error que invalidi els resultats, però sí una imprecisió rellevant en el report estadístic, ja que STROBE demana descriure de manera clara els mètodes estadístics utilitzats per controlar la confusió 
+
+En conclusió, l’article està força ben reportat i utilitza una metodologia adequada per a un estudi observacional. Tanmateix, el principal problema és la confusió entre el terme “propensity-matched” i l’ús real d’IPTW, ja que són tècniques diferents. Per això, tot i que els resultats són favorables a la NRP, s’han d’interpretar amb prudència, tenint en compte que l’estudi és observacional i que pot existir confusió residual.
+
+
+\clearpage
+\appendix
+
+# Annex
+**PART 1**
+
+## Importació de dades
+\label{anx:carrega}
+
+```{r ref.label='import', echo=TRUE, eval=FALSE}
+```
+
+## Qualitat de les dades
+```{r ref.label='qual', echo=TRUE, eval=FALSE}
+```
+
+## Identificació de les variables per a l'anàlisi interferencial
+```{r ref.label='interf', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='interf2', echo=TRUE, eval=FALSE}
+```
+## Disseny estudi
+```{r ref.label='dis1', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='dis2', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='dis3', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='dis4', echo=TRUE, eval=FALSE}
+```
+
+
+**PART 2**
+
+## Kaplan-Meier
+```{r ref.label='supv', echo=TRUE, eval=FALSE}
+```
+## Models de Cox 
+\label{cox}
+```{r ref.label='models_cox', echo=TRUE, eval=TRUE}
+```
+
+**PART 3**
+```{r ref.label='grafic_censures',echo=TRUE, eval=TRUE}
+
+```
+```{r ref.label='hazard_ratio',echo=TRUE, eval=TRUE}
+
+```
+
+\clearpage
+
+## Referències

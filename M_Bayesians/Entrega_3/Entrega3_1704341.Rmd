@@ -1,0 +1,136 @@
+---
+title: "Entrega_3"
+author: "Iker Fernández Cabanillas"
+date: "2026-05-05"
+output: pdf_document
+---
+
+### Exercici 1
+
+**L’objectiu d’aquest exercici és aplicar el mètode d’acceptació–rebuig (AR) per simular la distribució posterior del paràmetre $\mu$ en un model normal amb variància coneguda.**
+
+Es considera el model:
+
+$$
+X_i| \mu \sim N(\mu,\sigma^2)\ \rightarrow \sigma^2=4
+$$
+
+```{r}
+x=c(12.3, 9.8, 10.5, 11.9, 13.2,
+10.1, 11.4, 12.7, 9.9, 10.8)
+n=length(x)
+xbar=mean(x);xbar
+sigma2=4
+```
+
+Amb una prior:
+
+$$
+\mu \sim U(8,14)
+$$
+
+Un cop tingeu simulada la distribució posterior del paràmetre $\mu$, calculeu el rendiment teòric i empíric.
+
+```{r}
+rprior_mu=function() runif(1, 8, 14)
+
+llike=function(mu) {
+  sum(dnorm(x, mean = mu, sd = sqrt(sigma2), log = TRUE))
+}
+
+res=optimize(function(mu) -llike(mu), interval = c(8, 14))
+llmax=-res$objective
+```
+
+```{r}
+set.seed(57)
+nsim=10000
+mu_post=numeric(nsim)
+
+co=0
+tot=0
+
+while (co < nsim) {
+  
+  mu=rprior_mu()
+  sigma=2
+  
+  u=runif(1)
+  
+  if (log(u) <= llike(mu) - llmax) {
+    co=co + 1
+    mu_post[co]=mu
+  }
+  
+  tot=tot + 1
+}
+
+rendiment_emp=nsim/tot ; rendiment_emp
+```
+```{r}
+hist(mu_post, prob = TRUE, breaks = 30,
+     main = expression("Posterior de " ~ mu),
+     xlab = expression(mu))
+
+lines(density(mu_post), col = "red", lwd = 2)
+```
+
+
+
+
+
+### Exercici 2
+
+**En aquest exercici es vol aplicar el mètode d’acceptació–rebuig (AR) per simular la distribució posterior d’un paràmetre en un model no simètric, analitzant com la forma de la versemblança influeix en la dificultat del mètode.**
+
+```{r}
+y=c(1.8, 2.1, 1.6, 2.4, 2.0,
+1.9, 2.7, 2.3, 1.5, 2.2,
+2.6, 1.7, 2.8, 2.1)
+n=length(y)
+mean(y)
+```
+
+```{r}
+y=c(1.8, 2.1, 1.6, 2.4, 2.0, 1.9, 2.7, 2.3, 1.5, 2.2, 2.6, 1.7, 2.8, 2.1)
+n=length(y)
+sum_y=sum(y)
+ybar=mean(y)
+
+llike=function(lambda) {
+  n * log(lambda) - lambda * sum_y
+}
+
+lambda_mle=1 / ybar
+llmax_mano=llike(lambda_mle)
+
+res=optimize(llike, interval = c(0.1, 1.5), maximum = TRUE)
+llmax=res$objective
+cat("c =", exp(llmax), "\n")
+
+nsim=10000
+lambda_post=numeric(nsim)
+rechazos=0
+i=1
+
+while (i <= nsim) {
+  lambda_cand=runif(1, 0.1, 1.5)
+  
+  u=runif(1)
+  
+  if (log(u) <= llike(lambda_cand) - llmax) {
+    lambda_post[i]=lambda_cand
+    i=i + 1
+  } else {
+    rechazos=rechazos + 1
+  }
+}
+
+
+rend_empiric=nsim / (nsim + rechazos);rend_empiric
+
+hist(lambda_post, prob = TRUE, breaks = 40, 
+     main = "Posterior de Lambda (Exponencial)", xlab = expression(lambda))
+lines(density(lambda_post), col = "blue", lwd = 2)
+```
+

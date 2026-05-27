@@ -1,0 +1,574 @@
+---
+title: "Pràctica 3 : Cas-control per avaluar  la relació entre exposició a fàrmacs"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+bibliography: referencia.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+L'objectiu d'aquest estudi és avaluar l'associació entre l'exposició a fàrmacs antidepressius i el risc de fractura de maluc. En aquesta anàlisi, s'han descartat els controls hospitalaris previs per utilitzar nous controls procedents d'atenció primària, aparellats en una relació 1:4 per edat, sexe, centre i data de consulta. Això permet treballar amb una població de referència més coherent, millorant la validesa externa dels resultats.
+
+
+```{r carrega}
+library(haven)
+library(dplyr)
+
+uab_demo3 <- read_sas("uab_demo3.sas7bdat", NULL)
+uab_drugs3 <- read_sas("uab_drugs3.sas7bdat", NULL)
+uab_atcdrugs3 <- read_sas("uab_atc_drugs3.sas7bdat", NULL)
+
+data1 <- merge(uab_demo3, uab_drugs3, by.x="PatNo", by.y="PatNo")
+data <- merge(data1, uab_atcdrugs3, by.x="PatNo", by.y="PatNo")
+
+data <- data %>%
+  mutate(across(where(~ all(unique(.x) %in% c(0, 1, 2, 3, NA,"M","F"))), as.factor))
+data$NFractura=as.factor(data$NFractura)
+levels(data$NFractura)[levels(data$NFractura) %in% c("2", "3", "4", "5", "6", "7")]=">=2"
+data$ServeiAlta=as.factor(data$ServeiAlta)
+data$Edat=cut(data$Edat,breaks=c(50, 65, 81, 95),labels = c("51-65","66-81","82-95"),
+              include.lowest = TRUE)
+data=subset(data, select=-c(Hipogonad, FX_familia))
+data$Smoker=factor(data$Smoker,levels = c(0,1,2),
+                   labels = c("No Fumador", "Fumador Actiu", "Ex-Fumador"))
+data$ALCOHOL=factor(data$ALCOHOL,levels = c(0,1,2),
+                    labels = c("No consumeix", "Poc consum","Consum moderat"))
+data$tipus_diabetis=factor(data$tipus_diabetis,levels = c(0,1,2),
+                           labels = c("No diabetis","Tipus 1","Tipus 2"))
+
+```
+
+La Taula \ref{tab:tab1} mostra els estadístics descriptius de les característiques de la població segons el grup d’estudi (controls i casos). Per a les variables categòriques es presenten les freqüències absolutes i els percentatges, mentre que per a les variables quantitatives es mostren les mitjanes i les desviacions estàndard.
+
+```{r caract, echo=F, results=F}
+library(dplyr)
+library(tableone)
+
+variables_demo <- c("Sexe", "Edat" ,"PES", "TALLA", "IMC",
+                  "Smoker","ALCOHOL", "Artritis_reumatoide",
+                  "Fractura","NFractura","Diabetis","tipus_diabetis","Osteporosi",
+                  "Densitometries","neoplasia","HiperTiroidisme","Malnutricio",
+                  "Malabsorcio","Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4")
+
+cat_vars <- c("Sexe", "Smoker", "ALCOHOL", "Artritis_reumatoide","Edat",
+              "Fractura", "Diabetis", "tipus_diabetis", "Osteporosi", "Densitometries",
+              "neoplasia", "HiperTiroidisme", "Malnutricio", "Malabsorcio",
+              "Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4")
+
+taula_demo <- CreateTableOne(
+  vars = variables_demo,
+  strata = "ControlCas.x",
+  data = data,
+  factorVars = cat_vars,
+  includeNA = FALSE
+)
+
+tbl<- print(taula_demo)
+colnames(tbl)=c("Control","Cas","P_valor"," ")
+```
+
+```{r}
+library(kableExtra)
+library(knitr)
+kable(tbl,caption = "\\label{tab:tab1}Característiques de la població",align = "lccc")%>%
+  add_indent(c(4:6, 12:14, 16:18, 22:24, 27:29))
+```
+
+Cal destacar que diverses variables presenten una proporció elevada de valors perduts (NA). Tot i que aquestes variables s’han inclòs en l’anàlisi descriptiva, els seus resultats s’han d’interpretar amb cautela, ja que aquest alt contingut de dades mancants pot limitar la seva fiabilitat i representativitat. Per aquest motiu, en la interpretació global no es dona el mateix pes a totes les variables.
+
+En general, la majoria de variables presenten distribucions similars entre els grups de casos i controls, sense diferències estadísticament significatives. Això s’observa, per exemple, en variables com el sexe, l’edat, el MatchCC, l’IMC o la presència de neoplàsia, on els valors són molt semblants entre ambdós grups.
+
+Tanmateix, s’observen diferències estadísticament significatives en algunes variables com el servei d’alta, la talla, el consum de tabac (Smoker), la presència de fractura i el nombre de fractures, la diabetis i el tipus de diabetis, l’osteoporosi, la realització de densitometries, l’hipertiroïdisme, la malnutrició i la variable CountActualGE4.
+
+Pel que fa als mètodes estadístics utilitzats, per a les variables categòriques s’han aplicat proves de comparació de proporcions, principalment el test de chi-quadrat o el test exacte de Fisher quan les freqüències eren baixes. Per a les variables quantitatives s’ha utilitzat el test no paramètric de Wilcoxon (Mann-Whitney), adequat en situacions on no es pot assumir normalitat en la distribució de les dades.
+
+Un element destacable és que variables directament relacionades amb el resultat, com la fractura i el nombre de fractures, presenten diferències molt marcades entre casos i controls, fet esperable atès que formen part de la definició dels grups. També s’observa una major prevalença d’algunes condicions clíniques com la diabetis o l’osteoporosi en els casos, la qual cosa podria suggerir una possible associació amb el risc de fractura.
+
+No obstant això, aquesta anàlisi és purament descriptiva i no té en compte possibles factors de confusió. A més, la presència de dades mancants en algunes variables pot introduir incertesa en les estimacions. Per tant, el fet que una variable presenti una major proporció en un grup no implica necessàriament una relació causal. Per aquest motiu, en les anàlisis posteriors es durà a terme una regressió logística, tant en forma crua com ajustada per covariables, per tal d’avaluar aquestes associacions de manera més robusta.
+
+\clearpage
+
+# Analitzar la exposició als fàrmacs i els riscs associats de fractura
+
+## Anàlisi descriptiva d'exposició en els grups de cas i control
+
+La Taula \ref{tab:descrip} mostra la distribució dels diferents fàrmacs i grups terapèutics entre casos i controls, permetent comparar el percentatge d'exposició en ambdós grups.
+
+```{r descrip,results=F}
+variables_farmacs <- c("CortInh",
+"CortSist","CortSistIniBf3m","CortSistExpLt3m","CortInhIniBf3m",
+"CortInhExpLt3m","ADO_no_glitazona","Bisf","ADepreISRS",
+"ADepreNoISRS","insulina","H_SN","N_SN","H01_SN","H02_SN",
+"N06_SN","N06A_SN","N06AA_SN","N06AB_SN","N06AX_SN","R03BA_SN")
+
+variables_cat <- variables_farmacs[!grepl("Dias", variables_farmacs)]
+
+taula_des <- CreateTableOne(
+  vars = variables_farmacs,
+  factorVars = variables_cat,
+  strata = "ControlCas.x",
+  data = data
+)
+
+tbl=print(taula_des)
+colnames(tbl)=c("Control","Cas","P_valor"," ")
+class(tbl)
+```
+
+```{r descrip2}
+library(knitr)
+kable(tbl,caption = "\\label{tab:descrip}Comparació de Medicaments i teràpies",align = "lccc")
+```
+
+Els resultats de l’anàlisi descriptiva mostren diferències significatives entre casos i controls en diversos grups farmacològics. En particular, destaca una major prevalença d’ús d’antidepressius en el grup de casos, tant per als ISRS com per als no ISRS. Els ISRS presenten una prevalença del 27,5% en casos enfront del 7,6% en controls, i els antidepressius no ISRS del 22,9% davant del 9,2%, amb p-valors significatius en tots dos casos. Aquest mateix patró també s’observa en diverses categories del sistema nerviós, com N06, N06A i N06AB.
+
+També s’observen diferències significatives en altres grups terapèutics, com els bifosfonats o els antidiabètics orals (`ADO_no_glitazona`), fet que suggereix una major càrrega terapèutica en el grup de casos.
+
+En aquest sentit, @coupland2011antidepressant assenyalen que l’associació entre antidepressius i esdeveniments adversos pot estar parcialment explicada per les característiques dels pacients tractats. Aquest fet encaixa amb els nostres resultats, perquè a la taula veiem que els casos prenen més antidepressius que els controls, sobretot ISRS i antidepressius no ISRS, tal com hem esmentat.
+
+Per altra banda, veiem que els casos prenen més fàrmacs del sistema nerviós, sobretot antidepressius. Segons la @brotomodulo, aquest tipus de pacients sovint presenten polimedicació, i això augmenta el risc d’efectes adversos i d’interaccions entre medicaments; és per això que cal interpretar-ho amb prudència.
+
+Per tant, serà necessari realitzar una anàlisi multivariant per determinar si aquestes associacions es mantenen després d’ajustar per possibles factors confusors.
+
+\clearpage
+
+## Anàlisi inferencial cru i ajustat
+
+A continuació, utilitzarem un model de Regressió Logística Condicional, fent servir la funció `clogit` del paquet `survival`. S'utilitza aquest tipus de model degut a que parlem d'un estudi Cas-Control, on les dades son pariades, en aquest cas, 1:4, és a dir, cada cas té 4 controls, aparellats en edat i sexe.
+
+I per tant, les observacions dins de cada conjunt de 4 són dependents, això fa que la regressió logística convencional no sigui adequada en aquest cas.
+
+### Anàlisi logística "crua"
+
+La Taula \ref{tab:logcru} presenta els resultats de la regressió logística crua, que permet veure l'associació directa entre l'exposició als diferents fàrmacs i el risc de fractura de maluc, sense ajustar per possibles factors de confusió.
+
+```{r logcru, message=FALSE, results=F}
+library(survival)
+
+data$cas <- as.numeric(as.character(data$ControlCas.x))
+data$strata_id <- as.factor(data$MatchCC.x)
+
+variables_a_excloure <- c("PatNo", "ServeiAlta", "Sexe", "Edat", "MatchCC", "MatchCC.x",
+                          "MatchCC.y", "PES", "TALLA", "IMC",
+                  "Smoker","ALCOHOL", "Artritis_reumatoide",
+                  "Fractura","NFractura","Diabetis","tipus_diabetis","Osteporosi",
+                  "Densitometries","neoplasia","HiperTiroidisme","Malnutricio",
+                  "Malabsorcio","Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4",
+  "ControlCas.x", "ControlCas.y", "ControlCas", "cas", "strata_id")
+
+totes_les_columnes <- names(data)
+
+variables_analisi <- setdiff(totes_les_columnes, variables_a_excloure)
+
+resultats_2b <- lapply(variables_analisi, function(variable) {
+
+    formula_model <- as.formula(
+    paste("cas ~", variable, "+ strata(strata_id)")
+  )
+ 
+  model <- clogit(formula_model, data = data)
+  resum <- summary(model)$coefficients
+   
+    coeficients <- summary(model)$coefficients
+
+    estimacio <- estimacio <- coeficients[1]
+    p_valor <- coeficients[5]
+   
+    OR <- coeficients[2]
+    IC_inf <- exp(estimacio-1.96*coeficients[3])
+    IC_sup <- exp(estimacio+1.96*coeficients[3])
+   
+    return(data.frame(
+      Variable=variable,
+      OR_Cru = round(OR, 2),
+      IC_Inferior = round(IC_inf, 2),
+      IC_Superior = format(round(IC_sup, 2),nsmall=2),
+      P_valor = round(p_valor, 3)
+    ))
+    })
+
+taula_final_2b <- do.call(rbind, resultats_2b)
+rownames(taula_final_2b) <- NULL
+
+tab <- print(taula_final_2b)
+```
+
+```{r logcru2}
+kable(tab, caption="\\label{tab:logcru}Anàlisi per regressió logística crua de les variables",
+      align = "lccc")
+```
+
+Els resultats mostren una associació positiva i estadísticament significativa entre diversos fàrmacs i el risc de fractura de maluc. A diferència d’altres dissenys amb controls hospitalaris, l’ús de controls de població general podria contribuir a una major diferència en el perfil d’exposició entre casos i controls.
+
+Els resultats més destacats es troben en els **antidepressius** (`N06_SN`), amb una OR crua de `r tab$OR_Cru[16]` (IC: `r tab$IC_Inferior[16]`, `r tab$IC_Superior[16]`). Dins d'aquest grup, els ISRS (`N06AB_SN`) presenten el risc més eleva, amb una OR de `r tab$OR_Cru[19]`, en línia amb el que descriu l'article de referència [@gorgas2021], que siggereix tant un augmet del risc de caigudes com possibles efectes sobre el metabolisme ossi.
+
+També s'observen riscos molt elevats en els **bisfosfonats** (OR=`r tab$OR_Cru[8]`). Aquestes associacions s'han d'interpretar amb precaució, ja que poden reflectir confusió per indicació: els pacients exposats són probablement més fràgils o amb més patologies de base (com osteoporosi o diabetis) que els controls. Aquesta gran diferència basal explica per què les OR crues són tan elevades en comparació amb estudis on els controls també estan malalts.
+
+D’altra banda, algunes variables no mostren associacions estadísticament significatives, com la insulina (p=`r tab$P_valor[11]`) o determinats subgrups terapèutics. Finalment, la presència d’intervals de confiança molt amplis o valors extrems, com en H01_SN, indica possibles problemes de baixa freqüència o separació quasi perfecta, fet que limita la fiabilitat d’aquestes estimacions.
+
+### Anàlisi logística ajustada
+
+L'anàlisi crua detecta un increment de risc generalitzat, però la magnitud d'aquestes OR suggereix la presència d'un fort biaix de confusió per indicació. Per tant, l'anàlisi ajustada que es veu a continuació, és imprescindible per intentar aïllar l'efecte real dels antidepressius de la fragilitat general del pacient.
+
+Per tal de fer el millor ajust possible, observem la Taula \ref{tab:tab1} per observar possibles variables confusores, i tenim que aquestes són:
+
+   **Variables confusores retingudes**
+
+-   `Smoker` i `Alcohol`: S’ha decidit incloure aquestes variables en l’anàlisi ajustat ja que són factors d'estil de vida que afecten directament la salut òssia i poden actuar com a variables de confusió en l'associació amb els medicaments [@leal2022description] [@botaya2018osteoporosis]. A la descripció basal (\ref{tab:tab1}), s’observen diferències estadísticament significatives en el consum de tabac (p=0.001), amb una major proporció de fumadors actius i ex-fumadorsa l grup dels casos. Pel que fa a l’alcohol (p=0,058), tot i trobar-se en el límit de la significació, s'ha optat per mantenir-la al model ajustat per la seva rellevància clínica i bibliogràfica en el risc de fractures i caigudes, a més, aquesta diferéncia es troba als controls en l'àmbit de poc consum.
+
+-   `Diabetis`, `CountActualGE4`: De manera similar, es va avaluar l'impacte de prendre 4 o més fàrmacs de risc (CountActualGE4), ja que pot actuar com a indicador de polimedicació i de major càrrega de comorbiditat [@bonaga2016polifarmacia]. En la descripció basal (\ref{tab:tab1}), aquesta variable mostra diferències estadísticament significatives entre casos i controls( p\<0.001), amb una major proporció de pacients polimedicats en el grup de casos (75.6% vs 42.4%).
+
+    Pel que fa a la diabetis, també s’observen diferències significatives (p=0.007), amb una major prevalença en els casos. Donada la seva relació amb complicacions metabòliques i possibles efectes sobre el risc de fractura, així com l’ús de tractaments com la insulina i altres antidiabètics [@sedlinskydiabetes], es considera una variable rellevant a incloure com a covariable en el model ajustat.
+
+-   `Osteoporosi` i `Fractura`: Compleixen un doble criteri. D'una banda, presenten una forta evidència clínica com a factors de risc directes per a futures fractures. L'osteporosi és una malaltia que debilita els ossos i augmenta el risc de fractures i, Fractura indica si han hagut fractures prèvies [@campos2019osteoporosis]. D'altra banda, l'anàlisi de comparació de grups confirma una diferència estadísticament significativa en la nostra mostra d'estudi.
+
+   **Variables avaluades i excloses**:
+
+-   `Talla`, `HiperTiroidisme` i `Malnutricio`: La variable talla, ha estat exclosa degut a la presència de NA's a la base de dades, cosa que fa que els resultats s'esbiaixin. Per la part de l' HiperTiroidisme i la Malnutricio, tot i que hii ha diferencies significatives, s'ha optat per no incloure-les ja que aquestes tenen una baixa freqüència d'aquestes als casos i controls, la introducció d'aquestes variables podria generar problemes d'inestabilitat numèrica, a més, s'ha considerat que el seu potencial com a confusor, pot estar bastant limitat.
+
+Per tant, un cop s'han triat els confusors, fem el model:
+
+```{r logajust,results=F}
+covariables <- c("Osteporosi","Fractura","ALCOHOL","Smoker","Diabetis","CountActualGE4")  
+
+resultats_ajustats <- lapply(variables_analisi, function(variable) {
+
+    formula_model <- as.formula(
+        paste("cas ~", variable, "+",paste(covariables, collapse = " + "),"+ strata(strata_id)"
+        ))  
+   
+    model <- clogit(formula_model, data = data)
+    coeficients <- summary(model)$coefficients
+   
+    coeficients <- summary(model)$coefficients
+    estimacio <- coeficients[1,1]
+    p_valor <- coeficients[1,5]
+    OR_aj <- coeficients[1,2]
+    IC_inf <- exp(estimacio-1.96*coeficients[1,3])
+    IC_sup <- exp(estimacio+1.96*coeficients[1,3])
+     
+    return(data.frame(
+      Variable = variable,
+      OR_Ajustat = round(OR_aj, 2),
+      IC_Inferior = round(IC_inf, 2),
+      IC_Superior = format(round(IC_sup, 2),nsmall=2),
+      P_valor = round(p_valor, 3)
+    ))
+})
+
+
+taula_final_ajustada <- do.call(rbind, resultats_ajustats)
+rownames(taula_final_ajustada) <- NULL
+tab2 <- print(taula_final_ajustada)
+```
+
+```{r logajust2}
+kable(tab2, 
+      caption = "\\label{tab:logajust}Anàlisi per regressió logística ajustada per covariables",
+      align = "lcccc")
+```
+
+Els resultats de la regressió logística ajustada mostren una reducció general de les odds ratio respecte a l’anàlisi crua, fet que suggereix la presència de confusió per indicació en molts dels fàrmacs analitzats. Després d’ajustar per covariables com diabetis, alcohol, tabaquisme, osteoporosi, polimedicació i fractura previa, la majoria d’associacions perden significació estadística.
+
+Els resultats més destacats es mantenen en els antidepressius, especialment dins del grup N06, amb una OR ajustada de `r tab2$OR_Ajustat[16]` (IC: `r tab2$IC_Inferior[16]`, `r tab2$IC_Superior[16]`). Dins d’aquest grup, els ISRS (N06AB) continuen presentant una associació significativa (OR=`r tab2$OR_Ajustat[19]`; IC: `r tab2$IC_Inferior[19]`, `r tab2$IC_Superior[19]`), fet que reforça la hipòtesi d’un possible efecte propi d’aquests fàrmacs més enllà del perfil basal dels pacients.
+
+En canvi, altres fàrmacs que mostraven associacions elevades en l’anàlisi crua, com els bisfosfonats o la insulina, deixen de ser estadísticament significatius després de l’ajust. Això suggereix que les associacions observades inicialment podrien estar influïdes per la presència de factors de confusió.
+
+Cal destacar el cas de la variable `H01_SN`, on l'interval de confiança superior és infinit i presenta un $OR=0$. Això es deu a que només hi ha un únic individu en tota la mostra que pren aquest fàrmac (un control) i cap cas. Això impedeix que el model faci una estimació fiable.
+
+## Comparació amb l'article
+
+Els resultats obtinguts en aquest estudi són, en general, similars amb els descrits a l'article de referència @gorgas2021, tant en l'anàlisi crua com en l'ajustada.
+
+Pel que fa a l'anàlisi crua, les magnituds de les odds ratio són molt similars entre ambdós estudis. En particular, els antidepressius, especialment els ISRS (N06AB), mostren una OR elevada tant en el nostre estudi (OR =`r tab$OR_Cru[19]`) com en l'article (OR=4.89), indicant una forta associació entre exposició i risc de fractura abans d'ajustar per factors de confusió.
+
+En l'anàlisi ajustada, es manté aquesta coherència. Els ISRS continuen mostrant una associació positiva i estadísticament significativa en ambdós estudis, amb una OR de `r tab2$OR_Ajustat[19]` en els nostres resultats i de 3.52 en l'article.
+
+Altres antidepressius no ISRS perden significació estadística després de l'ajust en ambdós estudis, suggerint que l'associació observada en l'anàlisi crua està influïda per factors de confusió.
+
+Les petites diferències observades entre els resultats poden deure's a variacions en les covariables incloses en el model, cosa que podria explicar les discrepàncies observades entre ambdós estudis.
+
+\clearpage
+
+# Estadístics descriptius, mesures de risc, inferencies...
+
+```{r estadesc, results=F}
+#Taula descriptiva
+taula_des_df <- data.frame(
+  Variable = rownames(tbl),
+  Controls = tbl[, "Control"],
+  Casos = tbl[, "Cas"],
+  stringsAsFactors = FALSE
+)
+
+taula_des_df <- taula_des_df %>%
+  filter(grepl("= 1 \\(%\\)", Variable))
+
+taula_des_df$Variable <- gsub(" = 1 \\(%\\)", "", taula_des_df$Variable)
+
+#OR crua
+taula_final_2b$Crua <- paste0(
+  taula_final_2b$OR_Cru, " (",
+  taula_final_2b$IC_Inferior, ",",
+  taula_final_2b$IC_Superior, "); p=",
+  taula_final_2b$P_valor
+)
+
+#OR ajustada
+taula_final_ajustada$Ajustada <- paste0(
+  taula_final_ajustada$OR_Ajustat, " (",
+  taula_final_ajustada$IC_Inferior, ",",
+  taula_final_ajustada$IC_Superior, "); p=",
+  taula_final_ajustada$P_valor
+)
+
+taula_final <- taula_des_df %>%
+  left_join(taula_final_2b[, c("Variable", "Crua")], by = "Variable") %>%
+  left_join(taula_final_ajustada[, c("Variable", "Ajustada")], by = "Variable")
+
+taula_final <- taula_final %>%
+  select(Exposure = Variable,
+         `Controls n (%)` = Controls,
+         `Casos n (%)` = Casos,
+         `OR crua (IC95%); p valor` = Crua,
+         `OR ajustada (IC95%); p valor` = Ajustada)
+
+tab3 <- print(taula_final)
+```
+
+```{r estadesc2}
+kable(taula_final, caption = "\\label{tab:estadesc2}Exposició a fàrmacs i riscos associats", 
+      align = "lcccc")
+```
+
+A la Taula \ref{tab:estadesc2}, es pot apreciar de manera més clara i senzilla, com al fer l'ajust per regressió logística condicional, amb els corresponents confussors, la majoria de medicaments relacionades amb aquests, deixen de ser un factor de risc significatiu. I podem apreciar millor les medicines que presuntament segons el nou model són factors de risc.
+
+\clearpage
+
+# Factors de confusió
+
+Els factors de confusió són variables que fan que una relació aparent entre un fàrmac i el risc de fractura pugui estar influïda, en realitat, per característiques dels pacients i no únicament per l’efecte del tractament.
+
+En aquest estudi, la Taula \ref{tab:tab1} i la Taula \ref{tab:descrip} ja mostren diferències entre casos i controls en diverses variables clíniques i d’estil de vida. També s’observa que diversos medicaments són més freqüents en el grup de casos, especialment antidepressius, bisfosfonats i antidiabètics. Tot i això, aquestes diferències descriptives no permeten concloure una relació causal directa.
+
+La comparació entre la Taula \ref{tab:logcru} (anàlisi crua) i la Taula \ref{tab:logajust} (anàlisi ajustada) permet valorar millor la presència de confusió. Quan una odds ratio disminueix o augmenta de manera notable després de l’ajust o deixa de ser significativa, això suggereix que part de l’associació inicial estava influïda per factors de confusió.
+
+En aquest cas, els bisfosfonats passen d’una OR crua elevada a una OR ajustada molt menor i no significativa. Aquest patró és coherent amb confusió per indicació, ja que els pacients que reben aquest tractament presenten amb més freqüència osteoporosi o major risc ossi previ. Un comportament similar s’observa en la insulina i altres tractaments metabòlics, on la càrrega de comorbiditat podria explicar part de l’excés de risc observat en l’anàlisi no ajustada.
+
+Cal destacar també que la pèrdua de significació després de l’ajust no vol dir necessàriament que no hi hagi efecte, sinó que l’efecte estimat pot ser més petit, menys precís o ambdues coses alhora. Que els intervals de confiança siguin més amplis després d’afegir covariables és habitual en models amb diverses variables, especialment quan la mostra no és molt gran.
+
+Finalment, no es pot descartar la presència de confusió residual per factors que no estan disponibles a la base de dades, com antecedents de caigudes, estat funcional, gravetat clínica, dosi acumulada o adherència al tractament. Per això, els resultats s’han d’interpretar com associacions ajustades i no com una prova causal definitiva. Tot i així, l’ús de regressió logística condicional en un disseny aparellat continua sent una opció adequada per obtenir resultats més fiables en aquest context.
+
+```{r confus}
+library(kableExtra)
+
+taula_confusio <- data.frame(
+  Variable = c(
+    "CortInh", "CortSist", "CortSistIniBf3m", "CortSistExpLt3m",
+    "CortInhIniBf3m", "CortInhExpLt3m", "ADO_no_glitazona", "Bisf",
+    "ADepreISRS", "ADepreNoISRS", "insulina", "H_SN", "N_SN",
+    "H02_SN", "N06_SN", "N06A_SN", "N06AA_SN", "N06AB_SN", "N06AX_SN", "R03BA_SN"
+  ),
+  OR_Cru = c(
+    2.40, 3.33, 2.00, 2.00,
+    2.00, 2.00, 2.56, 4.94,
+    5.15, 3.13, 2.08, 2.11, 4.32,
+    2.86, 4.16, 4.58, 1.83, 4.93, 2.98, 1.14
+  ),
+  OR_Ajustat = c(
+    1.78, 3.94, 3.09, 3.09,
+    1.6, 1.6, 1.40, 1.64,
+    3.72, 1.62, 1.29, 1.21, 2.86,
+    3.00, 2.34, 2.36, 0.92, 3.47, 0.79, 1.69
+  )
+)
+
+
+taula_confusio$Canvi_relatiu <- round(
+  (taula_confusio$OR_Cru - taula_confusio$OR_Ajustat) / taula_confusio$OR_Ajustat * 100,
+  1
+)
+
+taula_confusio$Confusora <- ifelse(
+  abs(taula_confusio$Canvi_relatiu) >= 10, "Sí (+10%)", "No (-10%)"
+)
+
+taula_confusio$Direccio <- ifelse(
+  taula_confusio$Canvi_relatiu > 0,
+  "Positiva (sobreestimació)",
+  "Negativa (subestimació)"
+)
+```
+
+```{r confus2}
+kable(taula_confusio,
+      col.names = c("Variable", "OR Cru", "OR Ajustat",
+                    "Canvi relatiu (%)", "Confusora?", "Direcció"),
+      caption = "\\label{tab:confus2}Avaluació de factors de confusió",
+      
+      align = c("lcccc"))
+```
+
+A la Taula \ref{tab:confus2}, podem veure les variables medicament, evaluades per tal de saber si inicialment estaven afectades per un confusor, s'ha efectuat amb la fórmula adïent: $\frac{OR_{adj}-OR_{Crua}}{OR_{Adj}}*100$, si el valor és major a 10, en aquest cas ja que calculem percentatges, estariem parlant de que la variable estava alterada per un confusor, simplement això, seria possible també, saber quin o quins són els confusors en cada cas, evaluant cada covariable per tots els medicaments.
+
+En aquest cas, podem veure que realment totes les variables medicaments estaven alterades clarament, algunes inclús estaven infraestimades.
+
+\clearpage
+# Discussió
+
+L’anàlisi realitzada mostra que diverses exposicions farmacològiques apareixen relacionades amb el risc de fractura de maluc en el model inicial, però aquesta relació no es manté amb la mateixa intensitat un cop s’introdueixen covariables al model ajustat. Aquest comportament és esperable quan hi ha confusió per indicació, on les diferències entre grups poden influir de manera important en les estimacions crues.
+
+D’entre tots els tractaments estudiats, els antidepressius, i especialment els ISRS, són els que presenten resultats més estables. Tot i l’ajust estadístic, continuen mostrant una associació positiva amb el risc de fractura, fet que suggereix que l’efecte observat no s’explica únicament per la presència d’altres factors clínics. Aquesta troballa coincideix amb evidència publicada prèviament. En aquest sentit,[@eom2012use], en una revisió sistemàtica amb meta-anàlisi, van descriure un augment global del risc de fractura en usuaris d’ISRS (OR = 1.69; IC95%: 1.51–1.90), amb valors encara més elevats en fractures de maluc o fèmur (OR = 2.06; IC95%: 1.84–2.30), això indica que tot i que la direcció dels resultats coincideixen, la magnitud de les nostres OR, és possiblement excessius, probablement degut a la presència de confusió residual no controlada o per les característiques específiques de la nostra mostra.
+
+Per contra, en altres grups terapèutics, com els bisfosfonats o la insulina, les associacions inicialment elevades es redueixen clarament després de l’ajust. Una possible explicació és la confusió per indicació, ja que aquests tractaments sovint s’utilitzen en pacients amb osteoporosi, diabetis o una situació basal més fràgil, condicions que ja comporten un risc superior de fractura.
+
+També és important remarcar que perdre significació estadística després de l’ajust no equival necessàriament a absència d’efecte. En alguns casos pot indicar que l’associació real és més discreta o que la precisió de l’estimació és limitada, especialment quan els intervals de confiança són amplis, com en el nostre cas, on tenim una mostra de casos relativament reduïda.
+
+Des del punt de vista metodològic, l’ús de regressió logística condicional és coherent amb el disseny de casos i controls aparellats, ja que incorpora correctament l’estructura del mostreig i permet estimacions més adequades que un model logístic convencional.
+
+Entre les limitacions principals, cal considerar la possible existència de confusió residual derivada de variables no disponibles, com antecedents de caigudes, estat funcional, gravetat clínica, dosi acumulada o adherència terapèutica, o altres que directament són purament genètiques que afectin a predisposició a malalties com l'osteoporosi o a la diferent metabolització de fàrmacs entre d'altres. Igualment, algunes categories amb pocs individus poden generar resultats menys estables.
+
+Pel que fa a la direcció de la possible confusió residual, és probable que aquesta actuï en el sentit de sobreestimar l'efecte dels ISRS. Els pacients tractats amb antidepressius tendeixen a presentar una major gravetat clínica, pitjor estat funcional i més risc de caigudes derivat de la pròpia patologia de base, factors que no han estat recollits a les dades disponibles. Si aquests factors estan associats tant a l'exposició com al risc de fractura, les OR estimades podrien estar inflades més enllà de l'efecte farmacològic real.
+
+En síntesi, els resultats suggereixen que els antidepressius, i en particular els ISRS, presenten una associació amb el risc de fractura de maluc que es manté després de l'ajust per factors de confusió, cosa que reforça la plausibilitat d'un efecte propi d'aquests fàrmacs. Tot i això, la magnitud de les OR obtingudes és superior a la descrita en meta-anàlisis prèvies com la d'[@eom2012use], fet que suggereix que pot persistir confusió residual no controlada. Per tant, els resultats s'han d'interpretar com una evidència d'associació ajustada i no com una prova causal definitiva, i caldria considerar aquests fàrmacs amb especial prudència en pacients d'edat avançada amb factors de risc ossi coneguts.
+
+\clearpage
+
+# Avaluació de l'article original des del punt de vista estadístic i metodològic
+
+L’article de @gorgas2021 presenta un disseny de casos i controls aparellats (1:4) que segueix les directrius de transparència del STROBE statement. L’elecció de controls procedents d’atenció primària aparellats per criteris estrictes com l'edat, el sexe i el centre mèdic és un encert metodològic que garanteix la comparabilitat inicial dels grups.
+
+Destaca especialment la validació de les fractures realitzada per un traumatòleg que no sap si el pacient ha estat exposat, mètode que redueix significativament el biaix d’observació en el desenllaç estudiat. Malgrat la seva robustesa, l’estudi admet de  que l'ús de registres de facturació administrativa representa una limitació, ja que no permet confirmar si els pacient estan seguin el tractament prescrit.
+
+Des el punt de vista estadístic, l’aplicació de la regressió logística condicional és l’opció correcta per gestionar la dependència de les dades al disseny aparellat. L’article compleix amb el report de les estimacions de risc (OR) crudes i ajustades, la qual cosa permet al lector identificar clarament el pes de la confusió per indicació en l’associació. L’ajust per variables crítiques com l'osteoporosi, la diabetis i la polimedicació ($\geq$ 4 fàrmacs) es fonamental; aquests factors actuen com a potents variables de confusió que reflecteixen la fragilitat basal dels casos. Als qual presenten una diferencia real.
+
+Finalment, l'avaluació  subratlla l'existència de confusió residual, una limitació que els autors reporten seguint les recomanacions de reportar les febleses de l'estudi. El fet de dependre de fonts de dades sanitàries no dissenyades específicament per a la recerca fa que manquin indicadors sobre l’estat cognitiu o nutricional, factors que podrien haver influït en la magnitud del risc estimat. Malgrat això, la discussió justifica de manera sòlida l’associació trobada per als ISRS en la població mediterrània. L’article assoleix així l’objectiu de l’estadística aportant claredat a un argument científic de salut pública.
+
+
+# Re-disseny de l’estudi 
+
+L'aprenentatge principal de l'estudi és que el disseny utilitzat de casos i controls aparellats és adequat per estudiar esdeveniments poc freqüents com en aquest cas la fractura de maluc, però, que la qualitat dels resultats depen molt de la selecció de controls i de com es controles els factors de confusió.
+
+**Coses que fariem igual**:
+
+ - Mantenir el disseny cas-control aparellat (1:4) amb controls d'atenció primaria, per tal d'evitar el biaix de selecció.
+ 
+ - Usar la regressió logística condicional (`clogit`) per mantenir l'estructura aparellada.
+ 
+**Coses a modificar/millorar**:
+
+ - Recollir les variables no disponibles en registres administratius com podrien ser l'estat funcional i cognitiu, per reduir la confusió residual detectada. També es planteja incloure una variable de dosi acumulada.
+
+  - Ampliar la mostra, ja que alguns subgrups tenen pocs individus observats, el que genera IC molt amplis i estimacions poc estables
+  
+  - Considerar un disseny de cohort si els recursos ho permeten, per tal d'establir millor la temporalitat de l'exposició i calcular taxes d'incidència, no només OR.
+  
+  
+**Grandària mostral**
+
+Per detectar una OR $\geq$ 2.42 amb:
+
+-  Prevalença d'exposició en controls: $p_0 = 0.123$ (extret de la Taula 2 de l'article)
+
+- Ràtio controls/casos: $r = 4$
+
+-  Nivell de significació: $\alpha = 0.05$
+
+-  Potència: $1 - \beta = 0.80$
+
+Primer, calculem la prevalença esperada en casos:
+
+$$p_1 = \frac{OR \cdot p_0}{1 + p_0(OR - 1)} = \frac{2.42 \times 0.123}{1 + 0.123 \times 1.42} = \frac{0.2977}{1.1747} \approx 0.253$$
+
+$$\bar{p} = \frac{p_1 + r \cdot p_0}{1 + r} = \frac{0.253 + 4 \times 0.123}{5} = \frac{0.745}{5} = 0.149$$
+
+Finalment, apliquem la fórmula estàndard per a estudis cas-control:
+
+$$n_{casos} = \frac{\left(z_{\alpha/2}\sqrt{(1+\frac{1}{r})\bar{p}(1-\bar{p})} + z_{\beta}\sqrt{\frac{p_1(1-p_1)}{1} + \frac{p_0(1-p_0)}{r}}\right)^2}{(p_1 - p_0)^2}$$
+
+Substituint els valors ($z_{\alpha/2} = 1.96$, $z_{\beta} = 0.842$):
+
+$$n_{casos} = \frac{\left(1.96\sqrt{1.25 \times 0.149 \times 0.851} + 0.842\sqrt{\frac{0.253 \times 0.747}{1} + \frac{0.123 \times 0.877}{4}}\right)^2}{(0.253 - 0.123)^2} \approx 100 \text{ casos}$$
+
+Amb una ràtio 1:4, això implica aproximadament \textbf{400 controls}. Atès que l'estudi de @gorgas2021 va incloure 136 casos i 544 controls, es confirma que el disseny original disposava de potència estadística suficient ($> 80\%$) per detectar l'associació d'interès.
+
+
+
+\clearpage
+\appendix
+
+# Annex
+
+## Creuar data
+
+\label{anx:carrega}
+
+```{r ref.label='carrega', echo=TRUE, eval=FALSE}
+```
+
+## Taula característiques
+
+\label{anx:caract}
+
+```{r ref.label='caract', echo=TRUE, eval=FALSE}
+```
+
+## Anàlisi d'exposició als fàrmacs i els riscs associats de fractura
+
+### Anàlisi descriptiva
+
+\label{anx:descrip}
+
+```{r ref.label='descrip', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='descrip2', echo=TRUE, eval=FALSE}
+```
+
+### Anàlisi logística "crua"
+
+```{r ref.label='logcru', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='logcru2', echo=TRUE, eval=FALSE}
+```
+
+### Anàlisi logística ajustada
+
+```{r ref.label='logajust', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='logajust2', echo=TRUE, eval=FALSE}
+```
+
+## Estadístics descriptius, mesures de risc, inferencies...
+
+```{r ref.label='estadesc', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='estadesc2', echo=TRUE, eval=FALSE}
+```
+## Factors de confusió
+
+```{r ref.label='confus', echo=TRUE, eval=FALSE}
+```
+```{r ref.label='confus2', echo=TRUE, eval=FALSE}
+```
+
+\clearpage
+
+## Referències

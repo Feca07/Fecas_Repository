@@ -1,0 +1,268 @@
+---
+title: "Entrega Remostreig"
+author: 
+- "Enola Garcia NIU: 1708253"
+- "Iker Fernandez NIU: 1704341"
+date: "2026-02-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Exercici 1: Bootstrap per a la comapració de la Media i la Mediana
+En molts estudis, les dades presenten asimetria cap a la dreta, en aquests casos, la mediana és més representativa que la mitjana. Utilitzarem el mètode bootstrap per analitzar la precisió d'ambdos estimadors.
+
+**a) A partir de les dades per al període Inferior, calculem la mitjana ($\bar x$) i la mediana ($M$) del nombre de troballes per espècie**.
+```{r}
+inferior <- c(50, 29, 2, 1, 4, 1)
+n <- length(inferior)
+
+mitjana_obs <- mean(inferior); mitjana_obs
+mediana_obs <- median(inferior); mediana_obs
+```
+Hem obtingut una mitjana de `r mitjana_obs` i una mediana de `r mediana_obs`. La diferència és molt gran a causa de la forta dispersió i asimetria per la dreta de les dades. Les dues primeres espècies (Ceratops i Hadro) actuen com a valors extrems (heavy tails) que disparen la mitjana. La mediana, en canvi, no es veu tan afectada pels valors extrems.
+
+
+**b) Implementem un algorisme bootstrap amb $B=2000$ replicacions per estimar l'error estàndard de la mitjana, $se_{boot}(\bar x)$ i estimar l'error estàndard de la mediana, $se_{boot(M)}$**.
+
+```{r}
+set.seed(155)
+B <- 2000
+mitjanes_boot <- numeric(B)
+medianes_boot <- numeric(B)
+
+# Bootstrap no paramètric
+for(i in 1:B) {
+  mostra_b <- sample(inferior, size = n, replace = TRUE)
+  mitjanes_boot[i] <- mean(mostra_b)
+  medianes_boot[i] <- median(mostra_b)
+}
+
+se_mitjana <- sd(mitjanes_boot); se_mitjana
+se_mediana <- sd(medianes_boot); se_mediana
+```
+Contrariament al que se sol esperar de dades simètriques, la mitjana presenta una variabilitat menor que la mediana. Això és causa de la grandària de la mostra.
+
+**c) Utilitzem les mostres bootstrap generades per calcular el biaix estimat per a la mitjana i per a la mediana**.
+
+```{r}
+biaix_mitjana <- mean(mitjanes_boot) - mitjana_obs; biaix_mitjana
+biaix_mediana <- mean(medianes_boot) - mediana_obs; biaix_mediana
+```
+
+La mitjana mostral és un estimador no esbiaixat de la mitjana poblacional, per això dona un valor proper a 0. En canvi, la mediana en mostres petites i asimètriques presenta un valor més elevat. Per tant, la mediana està més esbiaixada que la mitjana.
+
+
+**d) Per a la mediana, calculem els intervals de confiança al 95\%**
+
+Interval Normal (basat en l'error estàndard)
+```{r}
+ic_norm_med_inf <- mediana_obs - qnorm(0.975) * se_mediana
+ic_norm_med_sup <- mediana_obs + qnorm(0.975) * se_mediana
+cat("IC 95% Normal per a la mediana: (", ic_norm_med_inf, ",",ic_norm_med_sup , ")\n")
+```
+
+És molt ample degut a la grandària també de l'error estàndard
+
+Interval del Percentil
+```{r}
+ic_percentil <- quantile(medianes_boot, probs = c(0.025, 0.975))
+cat("IC 95% Percentil per a la mediana: (", ic_percentil, ") \n")
+```
+
+**e) Si afegim una observació atípica a les dades originals, quin dels dos intervals de confiança patiria un desplaçament major?**
+
+L'interval de confiança de la mitjana patiria un desplaçament més gran. Com hem vist a l'apartat (a), la mitjana és altament sensible als valors extrems, afegir un 200 la faria disparar-se, desplaçant l'interval i augmentant el seu error estàndard.
+
+La mediana, per la seva pròpia definició geomètrica (el valor del mig quan ordenem les dades), quasi no es mouria (només canviaria una posició en el rànquing), mantenint el seu interval de confiança molt més estable i centrat.
+
+
+
+
+
+\clearpage
+# Exercici 2: Tests de permutacions per a la comparació de poblacions
+
+Utilitzarem la distribució permutacional per estudiar si l'abundància relativa de dinosaures va canviar significativament entre el període **Inferior** i el **Superior**. 
+
+Considerem la distància chi-quadrat com estadístic de contrast:
+$$
+d_{X^2}=\sum_{i=1}^k\frac{(p_{i,inf}-p_{i,sup})^2}{\bar p_i}
+$$
+
+**a) Calculem les proporcions de cada espècia per als períodes *Inferior* i *Superior*. Calculem el valor observat de l'estadístic entre aquests dos períodes**
+
+```{r}
+inferior <- c(50, 29, 2, 1, 4, 1)
+superior <- c(19, 7, 1, 2, 1, 3)
+n_inf <- sum(inferior) 
+n_sup <- sum(superior) 
+
+# Proporcions individuals
+p_inf <- inferior / n_inf
+p_sup <- superior / n_sup
+
+# Proporció mitjana global
+p_bar <- (inferior + superior) / (n_inf + n_sup)
+
+d_obs <- sum((p_inf - p_sup)^2 / p_bar); d_obs
+```
+Per tant $d_{X^2}$=`r d_obs`
+
+
+**b) Definim la hipòtesi nul·la en el context d'un test de permutacions per a aquestes dades**.
+
+Per al test de permutacions, la hipòtesi nul·la ($H_0$) postula que **no hi ha diferències en la distribució d'abundància de les espècies entre els dos períodes**.
+
+D'una forma més pràctica: $H_0$ assumeix que les etiquetes del període ("Inferior" o "Superior") assignades a cada fòssil són intercanviables o producte de l'atzar. 
+
+
+**c) Implementem el test**
+
+Barrejem tots els fòssils (87+33) i els dividim aleatòriament en dos grups de mides 87 i 33.
+```{r}
+set.seed(155)
+# Repetim cada espècie tantes vegades com el total de fòssils observats d'aquella espècie
+poblacio_total <- c(rep(1, inferior[1] + superior[1]),
+                    rep(2, inferior[2] + superior[2]),
+                    rep(3, inferior[3] + superior[3]),
+                    rep(4, inferior[4] + superior[4]),
+                    rep(5, inferior[5] + superior[5]),
+                    rep(6, inferior[6] + superior[6]))
+
+B <- 2000
+d_perm <- numeric(B)
+cnt <- 0      
+
+for(i in 1:B) {
+  indexs_inf <- sample(1:length(poblacio_total), size = n_inf, replace = FALSE)
+  
+  sim_inf <- poblacio_total[indexs_inf]
+  sim_sup <- poblacio_total[-indexs_inf]
+  
+  comptes_inf <- as.numeric(table(factor(sim_inf, levels = 1:6)))
+  comptes_sup <- as.numeric(table(factor(sim_sup, levels = 1:6)))
+  
+  p_inf_sim <- comptes_inf / n_inf
+  p_sup_sim <- comptes_sup / n_sup
+  
+  d_perm[i] <- sum((p_inf_sim - p_sup_sim)^2 / p_bar)
+  
+  if (d_perm[i] >= d_obs) {
+    cnt <- cnt + 1
+  }
+}
+
+p_valor <- cnt / B
+
+cat("P-valor del test permutacional:", p_valor, "\n")
+```
+Donat que obtenim un pvalor de `r p_valor`, no tenim prou evidència estadística per rebutjar la hipòtesi nul·la. No podem afirmar que els dos períodes siguin realment diferents. És a dir, qualsevol diferència que veiem als números es pot explicar per simple atzar
+
+**d) Representem l'histograma de la distribució permutacional de l'estadístic**
+```{r}
+hist(d_perm, breaks = 30, col = "skyblue", border = "white",
+     main = "Distribució Permutacional de la Distància Chi-Quadrat",
+     xlab = "Valor de d_chi2 simulat", ylab = "Freqüència")
+
+# Hi afegim la línia vermella de l'estadístic observat
+abline(v = d_obs, col = "red", lwd = 2, lty = 2)
+
+legend("topright", legend = c("Estadístic Observat"), 
+       col = "red", lwd = 2, lty = 2, bty = "n")
+```
+
+
+
+\clearpage
+# Exercici 3: Bootstrap Paramètric vs No Paramètric
+
+```{r}
+###Dades inicials:
+
+set.seed(155)
+superior=c(19, 7, 1, 2, 1, 3)
+n=length(superior)
+B=2000
+```
+
+
+**a) Calculem la mitjana mostral ($\hat{\lambda}$) i la variància mostral ($s^2$) dels recomptes del període Superior i els comparem.**
+
+```{r}
+lambda_hat=mean(superior);lambda_hat
+s2=var(superior);s2
+ratio= s2/lambda_hat;ratio
+```
+
+Observant les sortides, tenim com a mitjana mostral $\hat{\lambda}$= `r lambda_hat` i com a variància mostral $s^2$= `r s2`, ja només amb aquestes sortides podriem dir que té una sobredispersió important ja que $\hat{\lambda}$ és molt més petit que $s^2$ i teoricament haurien de ser iguals, però, igualment, hem calculat el ratio, resultant `r ratio`, un valor molt elevat que mostra clarament sobredispersió, per tant, no podem dir que el model poisson és un model d'ajust adequat, ja que tenim una evidencia clara de sobredispersió.
+
+**b) Generem B=2000 mostres bootstrap  extraient elements amb reposici´o de la mostra original i calculem l'error estàndard de la mitjana.**
+
+```{r}
+mean_bnp=replicate(B, mean(sample(superior, size = n, replace = TRUE)))
+se_NP=sd(mean_bnp);se_NP
+```
+
+L'error estàndard de la mitjana amb un bootstrap no paramètric ($\hat{se}_{boot,NP}(\hat{\lambda})$) = `r se_NP`.
+
+**c) Supossant que les dades segueixen una poisson($\hat{\lambda}$) on el paràmetre s’estima amb la mitjana de la mostra original. Genera B = 2000 mostres simulades a partir d’aquest model i calcula l’error estàndard paramètric ($\hat{se}_{boot,P}(\hat{\lambda})$).**
+
+```{r}
+mean_bp=replicate(B, mean(rpois(n, lambda = lambda_hat)))
+se_P=sd(mean_bp);se_P
+```
+
+En aquest cas, utilitzant bootstrap paramètric amb distribució poisson($\hat{\lambda}$), obtenim una $\hat{se}_{boot,P}(\hat{\lambda})$ = `r se_P`, un valor bastant més petit que amb el bootstrap no paramètric, ja que aquest assumeix la poisson que té poca variabilitat, mentre que el no paramètric captura la sobredispersió real de les dades.
+
+**d) Calculem l'interval de confiança del 95% per a $\lambda$ utilitzant el mètode del percentil per a:**
+
+- **a) L'enfocament no paramètric de l'apartat b)**
+  
+```{r}
+ic_NP=quantile(mean_bnp, probs = c(0.025, 0.975));ic_NP
+
+dif=ic_NP[2]-ic_NP[1]
+```
+
+- **b) L'enfocament paramètric de l'apartat c)**
+  
+```{r}
+ic_P=quantile(mean_bp,  probs = c(0.025, 0.975));ic_P
+
+dif2=ic_P[2]-ic_P[1]
+```
+
+```{r, echo=T}
+par(mfrow = c(1, 2))
+
+hist(mean_bnp, breaks = 30, col = "steelblue", border = "white",
+     main = "Bootstrap No Paramètric",
+     xlab = expression(hat(lambda)), ylab = "Freqüència")
+abline(v = lambda_hat, col = "red", lwd = 2, lty = 2)
+abline(v = ic_NP, col = "darkgreen", lwd = 2, lty = 3)
+legend("topright", legend = c("lambda original", "IC 95%"),
+       col = c("red", "darkgreen"), lty = c(2, 3), lwd = 2, cex = 0.6)
+
+hist(mean_bp, breaks = 30, col = "salmon", border = "white",
+     main = "Bootstrap Paramètric (Poisson)",
+     xlab = expression(hat(lambda)), ylab = "Freqüència")
+abline(v = lambda_hat, col = "red", lwd = 2, lty = 2)
+abline(v = ic_P, col = "darkgreen", lwd = 2, lty = 3)
+legend("topright", legend = c("lambda original", "IC 95%"),
+       col = c("red", "darkgreen"), lty = c(2, 3), lwd = 2, cex = 0.6)
+
+par(mfrow = c(1, 1))
+```
+
+Utilitzant el mètode del percentil, obtenim un interval de confiança (`r ic_NP`) per al bootstrap no paramètric amb una amplitud = `r dif`.
+
+Pel cas paramètric, obtenim un interval (`r ic_P`), amb una amplitud = `r dif2`.
+
+Podem observar clarament com es podia sospitar amb els apartats anteriors que el bootstrap no paramètric té un interval de confiança amb una amplitud bastant més destacable que la del bootstrap paramètric, ja que com s'ha esmentat abans, aquest mètode paramètric  al nostre cas, assumim una poisson i artificialment, generem una equidispersió que realment no existeix. És per això que és preferible en aquest cas, utilitzar el bootstrap no paràmetric per sobre de el paramètric utilitzant poisson, ja que és més fiable i no transforma tant les dades.
+
+Als histogrames, podem observar clarament, la major dispersió al bootsrap no paramètric, assumint la distribució real de les dades, en contra del paramètric, on podem apreciar que la distribució és visiblement menys dispersa i "artificial".

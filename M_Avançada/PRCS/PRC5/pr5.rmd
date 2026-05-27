@@ -1,0 +1,194 @@
+---
+title: "Pràctica 5: Generació i validació d'un model predictiu de mortalitat en pacients amb cirrosi descompensada"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+bibliography: referencia.bib
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+# INTRODUCCIÓ
+
+# PART 1: MODELITZACIÓ PREDICTIVA
+
+
+```{r import}
+library(haven)
+
+data <- read_sas("prac5_trn.sas7bdat",NULL)
+```
+## Model 1: MELD-Na i L-FABP a orina
+
+**Objectiu i preparació**
+L'objectiu d'aquest primer model és avaluar la capacitat pronòstica de la puntuació `MELD-Na` i els nivells del biomarcador `L-FABP` en orina sobre la mortalitat dels pacients amb cirrosi descompensada. Seguint la metodologia de l'article de referència [@juanola2022urinary], s'ha aplicat un model de riscos proporcionals de Cox multivariable.
+
+És important destacar que l'efecte del L-FABP s'avalua per cada increment de 10 unitats. Per aquest motiu, prèviament a la modelització, s'ha creat una variable transformada dividint el valor original del biomarcador entre 10.
+
+
+```{r model_1_cox}
+library(survival)
+# Transformació de les unitats per a la variable L-FABP a orina
+# Dividim entre 10 per avaluar el risc per increments de 10 unitats.
+data$LFABP_Urine_10 <- data$LFABP_Urine / 10
+
+# ==========================================
+# FASE 1: MODELS UNIVARIABLES
+# ==========================================
+
+# Model Univariable per a MELD-Na
+uni_meld <- coxph(Surv(DeathTm, DeathYN) ~ MELD_Na, data = data)
+sum_uni_meld <- summary(uni_meld)
+hr_u_meld <- round(sum_uni_meld$conf.int[1, "exp(coef)"], 3)
+low_u_meld <- round(sum_uni_meld$conf.int[1, "lower .95"], 3)
+upp_u_meld <- round(sum_uni_meld$conf.int[1, "upper .95"], 3)
+p_u_meld <- round(sum_uni_meld$coefficients[1, "Pr(>|z|)"], 3)
+p_u_meld_f <- ifelse(p_u_meld < 0.001, "<0.001", as.character(p_u_meld))
+
+c_u_meld <- round(sum_uni_meld$concordance["C"], 3)
+se_c_u_meld <- sum_uni_meld$concordance["se(C)"]
+c_u_meld_f <- paste0(c_u_meld, " (", round(c_u_meld - 1.96 * se_c_u_meld, 3), "-", round(c_u_meld + 1.96 * se_c_u_meld, 3), ")")
+
+# Model Univariable per a L-FABP (en unitats de 10)
+uni_lfabp <- coxph(survival::Surv(DeathTm, DeathYN) ~ LFABP_Urine_10, data = data)
+sum_uni_lfabp <- summary(uni_lfabp)
+hr_u_lfabp <- round(sum_uni_lfabp$conf.int[1, "exp(coef)"], 3)
+low_u_lfabp <- round(sum_uni_lfabp$conf.int[1, "lower .95"], 3)
+upp_u_lfabp <- round(sum_uni_lfabp$conf.int[1, "upper .95"], 3)
+p_u_lfabp <- round(sum_uni_lfabp$coefficients[1, "Pr(>|z|)"], 3)
+p_u_lfabp_f <- ifelse(p_u_lfabp < 0.001, "<0.001", as.character(p_u_lfabp))
+
+c_u_lfabp <- round(sum_uni_lfabp$concordance["C"], 3)
+se_c_u_lfabp <- sum_uni_lfabp$concordance["se(C)"]
+c_u_lfabp_f <- paste0(c_u_lfabp, " (", round(c_u_lfabp - 1.96 * se_c_u_lfabp, 3), "-", round(c_u_lfabp + 1.96 * se_c_u_lfabp, 3), ")")
+
+
+# ==========================================
+# FASE 2: MODEL MULTIVARIABLE (MODEL 1)
+# ==========================================
+
+multi1 <- coxph(survival::Surv(DeathTm, DeathYN) ~ MELD_Na + LFABP_Urine_10, data = data)
+sum_multi1 <- summary(multi1)
+
+# Extracció MELD-Na en el model conjunt
+hr_m_meld <- round(sum_multi1$conf.int["MELD_Na", "exp(coef)"], 3)
+low_m_meld <- round(sum_multi1$conf.int["MELD_Na", "lower .95"], 3)
+upp_m_meld <- round(sum_multi1$conf.int["MELD_Na", "upper .95"], 3)
+p_m_meld <- round(sum_multi1$coefficients["MELD_Na", "Pr(>|z|)"], 3)
+p_m_meld_f <- ifelse(p_m_meld < 0.001, "<0.001", as.character(p_m_meld))
+
+# Extracció L-FABP (10 unitats) en el model conjunt
+hr_m_lfabp <- round(sum_multi1$conf.int["LFABP_Urine_10", "exp(coef)"], 3)
+low_m_lfabp <- round(sum_multi1$conf.int["LFABP_Urine_10", "lower .95"], 3)
+upp_m_lfabp <- round(sum_multi1$conf.int["LFABP_Urine_10", "upper .95"], 3)
+p_m_lfabp <- round(sum_multi1$coefficients["LFABP_Urine_10", "Pr(>|z|)"], 3)
+p_m_lfabp_f <- ifelse(p_m_lfabp < 0.001, "<0.001", as.character(p_m_lfabp))
+
+# C-statistic del model global multivariable
+c_m1 <- round(sum_multi1$concordance["C"], 3)
+se_c_m1 <- sum_multi1$concordance["se(C)"]
+c_m1_f <- paste0(c_m1, " (", round(c_m1 - 1.96 * se_c_m1, 3), "-", round(c_m1 + 1.96 * se_c_m1, 3), ")")
+
+
+
+taula_model1 <- data.frame(
+  `Predictor` = c("MELD-Na", "L-FABP urine"),
+  `Units` = c("1", "10"),
+  `HR (95% CI) Univariable` = c(paste0(hr_u_meld, " (", low_u_meld, "-", upp_u_meld, ")"), paste0(hr_u_lfabp, " (", low_u_lfabp, "-", upp_u_lfabp, ")")),
+  `p-value Univ.` = c(p_u_meld_f, p_u_lfabp_f),
+  `C-Statistic Univ.` = c(c_u_meld_f, c_u_lfabp_f),
+  `HR (95% CI) Multivariable` = c(paste0(hr_m_meld, " (", low_m_meld, "-", upp_m_meld, ")"), paste0(hr_m_lfabp, " (", low_m_lfabp, "-", upp_m_lfabp, ")")),
+  `p-value Multi.` = c(p_m_meld_f, p_m_lfabp_f),
+  `C-Statistic Multi.` = c(c_m1_f, ""),
+  check.names = FALSE
+)
+```
+
+```{r tab1}
+knitr::kable(taula_model1, align = "c", caption = "\\label{tab:tab1}Model 1: Anàlisi Univariable i Multivariable per a la predicció de mortalitat")
+```
+
+
+A la taula \ref{tab:tab1} dabdabdab
+
+## Model 2: Variables seleccionades
+
+```{r}
+totes_les_columnes <- names(data)
+variables_a_excloure <- c("PatNo", "DeathYN", "DeathTm")
+variables_analisi <- setdiff(totes_les_columnes, variables_a_excloure)
+
+# variables_analisi <- c("SEX", "Etiology", "Infection", "AKI", "ACLF", 
+#                        "MELD_Na", "Albumin", "LFABP_Urine", "LFABP_Plasma")
+
+resultats_crus <- lapply(variables_analisi, function(variable) {
+  
+  formula_model <- as.formula(paste("DeathYN ~", variable))
+  
+  model <- glm(formula_model, data = data, family = binomial)
+  
+  coeficients <- summary(model)$coefficients
+  estimacio <- coef(model)[2]
+  p_valor <- coeficients[2,4]
+  
+  OR <- exp(estimacio)
+  
+  IC <- exp(confint(model)[2, ])
+  
+  return(data.frame(
+    Variable = variable,
+    OR_Cru = round(OR, 3),
+    IC_Inferior = round(IC[1], 3),
+    IC_Superior = round(IC[2], 3),
+    P_valor = round(p_valor, 3)
+  ))
+})
+
+taula_final_crua <- do.call(rbind, resultats_crus)
+
+print(taula_final_crua)
+```
+
+\clearpage
+```{r}
+library(survival)
+
+cox_multi2 <- coxph(Surv(DeathTm, DeathYN) ~ ACLF + Leucocites, data = data)
+sum_multi2 <- summary(cox_multi2)
+
+c_multi2 <- sum_multi2$concordance
+
+cat("=== MULTIVARIABLE Model 2 ===\n")
+print(round(sum_multi2$coefficients, 4))
+cat("\nHR amb IC95%:\n")
+print(round(exp(cbind(HR = coef(cox_multi2), confint(cox_multi2))), 3))
+cat("\nC-index:", round(c_multi2[1], 3),
+    "IC95%:", round(c_multi2[1] - 1.96*c_multi2[2], 3),
+    "-", round(c_multi2[1] + 1.96*c_multi2[2], 3), "\n")
+```
+
+# PART 2: CRÍTICA A L'ARTICLE
+
+
+\clearpage
+\appendix
+
+# Annex
+
+
+\clearpage
+
+## Referències

@@ -1,0 +1,139 @@
+---
+title: "Entrega1"
+author: "Iker Fernández Cabanillas"
+date: "2026-03-03"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r}
+set.seed(123)
+lambda_real <- 0.8
+x <- rexp(200, rate=lambda_real)
+```
+
+## Apartat A:
+
+```{r}
+alpha_prior=2
+beta_prior=1
+
+alpha_post=length(x)+alpha_prior
+beta_post=sum(x)+beta_prior
+lambda_rango=seq(0,1.6,length.out=1000)
+
+posterior=dgamma(lambda_rango,alpha_post,beta_post)
+prior=dgamma(lambda_rango,alpha_prior,beta_prior)
+
+plot(lambda_rango,posterior,type = "l",main="Distr. Prior i posterior de Lambda")
+lines(lambda_rango,prior, col="#f82713", lwd = 2, lty = 2)
+legend("topright", legend=c("Posterior", "Prior"), col=c("black","#f82713"), lty=c(1,2))
+```
+
+## Apartat B:
+
+Tenim la prior: 
+
+
+$$
+\pi(\lambda) \propto \lambda^{\alpha-1} e^{-\beta \lambda} ,\ \lambda>0 \,\ amb \ \alpha_0,\beta_0: \rightarrow \lambda^{\alpha_0-1}e^{-\beta_0\cdot\lambda}
+$$
+
+
+
+Ara calculem la $L(\lambda|x)$ de la distribució exponencial, ja que $X_i \sim Exp(\lambda)$:
+
+$$
+L(\lambda|x) = \prod_{i=1}^n \lambda e^{-\lambda x_i} \rightarrow \lambda^n e^{-\lambda \sum_{i=1}^n x_i}
+$$
+
+
+Per últim calculem la posterior:
+
+$$
+\begin{aligned}
+&\pi(\lambda|x) \propto \pi(\lambda)\cdot L(\lambda|x)\\
+&\pi(\lambda|x) \propto (\lambda^{\alpha_0-1}e^{-\beta_0\cdot\lambda}) \cdot (\lambda^n e^{-\lambda \sum_{i=1}^n x_i}) \\
+&\pi(\lambda|x) \propto \lambda^{n+\alpha_0-1} e^{-\lambda (\sum_{i=1}^n x_i + \beta_0)} 
+\end{aligned}
+$$
+
+Per tant, quedaria aquesta expresió:
+
+$$
+\lambda^{n+\alpha_0-1} e^{-\lambda (\sum_{i=1}^n x_i + \beta_0)}.
+$$
+
+I per tant, ens queda una posterior $\lambda|x \propto Gamma(n+\alpha_0, \sum x_i + \beta_0).$
+
+Cal esmentar, que com s'ha utilitzat la proporcionalitat, no s'ha inclós el terme constant, amb aquest quedaria:
+
+$$
+p(\lambda|x)= \frac{\beta_n^{\alpha_n}}{\Gamma(\alpha_n)} \lambda^{\alpha_n-1}e^{-\beta_n\lambda}
+$$
+
+## Apartat C
+
+```{r}
+alpha_prior2=10
+beta_prior2=8
+
+alpha_post2=length(x)+alpha_prior2
+beta_post2=sum(x)+beta_prior2
+
+lambda_rango=seq(0,1.6,length.out=1000)
+
+posterior2=dgamma(lambda_rango,alpha_post2,beta_post2)
+prior2=dgamma(lambda_rango,alpha_prior2,beta_prior2)
+
+plot(lambda_rango,posterior2,type = "l",main="Comparació de densitats.",col="black",
+     xlab= "Lambda",ylab = "Dens",
+     ylim=c(0,max(posterior2,posterior)))
+lines(lambda_rango,prior2, col="#f17", lwd = 2, lty = 2)
+
+lines(lambda_rango,posterior, col="#f98")
+lines(lambda_rango,prior, col="#b87", lwd = 2, lty = 2)
+
+
+legend("topright", 
+       legend=c("Posterior (10,8)", "Prior (10,8)","Posterior (2,1)","Prior(2,1)")
+       ,col=c("black","#f17","#f98","#b87"), lty=c(1,2))
+```
+
+Com podem observar a la comparació gràfica de las dues densitats posteriors, tenim que aquestes són molt similars, encara que els paràmetres son ben diferents, això és així ja que tenim un total de 200 casos, un nombre suficientment gran, com perquè la versemblança domini sobre la distribució a priori , ja que possiblement la posterior acabarà tendint al valor real del paràmetre.
+
+## Apartat D
+
+Com sabem, la esperança d'una Gamma és : $E[\lambda|x]=\frac{\alpha_{post}}{\beta{post}}$, per tant, ho aplicarem amb aquests paràmetres referents a l'ultim apartat (10,8):
+
+```{r}
+esp_lambda= alpha_post2/beta_post2
+lambda_IC=qgamma(c(0.025, 0.975), shape = alpha_post2, rate = beta_post2)
+
+esp_lambda
+lambda_IC
+```
+
+Tenim que el valor esperat de $\lambda$ és `r esp_lambda`, amb un interval de credibilitat amb valors (`r lambda_IC`).
+
+## Apartat E
+
+```{r}
+sim=rgamma(10000, shape = alpha_post2, rate = beta_post2)
+IC_sim=quantile(sim, probs = c(0.025, 0.975));IC_sim
+
+#Grafiquem:
+
+hist(sim, breaks = 50, prob = TRUE, 
+     main = "Posterior simulada vs Teòrica",
+     xlab = "Lambda",
+     col = "lightblue")
+lines(lambda_rango,posterior2,col="brown",lwd=2)
+
+legend("topright", legend = c("Simulació", "Teòrica"), 
+       col = c("lightblue", "brown"), 
+       lwd = c(10, 2))
+```
+

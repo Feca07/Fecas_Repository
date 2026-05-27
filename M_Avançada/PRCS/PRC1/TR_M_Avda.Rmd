@@ -1,0 +1,40 @@
+---
+title: "Treball_Mod_av"
+author: "Iker Fernández Cabanillas"
+date: "2026-02-17"
+output: html_document
+---
+
+```{r resums, echo=F,include=F}
+library(haven)
+
+uab_demo1 <- read_sas("uab_demo1.sas7bdat", NULL)
+
+uab_drugs1 <- read_sas("uab_drugs1.sas7bdat", NULL)
+
+uab_atc_drugs1 <- read_sas("uab_atc_drugs1.sas7bdat",NULL)
+uab_demo1$Sexe=as.factor(uab_demo1$Sexe)
+uab_demo1$Sexe[uab_demo1$Sexe == ""]=NA
+
+summary(uab_demo1)
+library(psych)
+describe(uab_demo1)
+```
+
+```{r}
+uab_demo1[365,]
+```
+
+```{r}
+length(which(uab_demo1$Edat>90))
+```
+
+```{r}
+uab_demo1$Edat[uab_demo1$Edat == " "]=NA
+```
+
+```{r}
+library(naniar)
+gg_miss_var(uab_demo1)
+```
+

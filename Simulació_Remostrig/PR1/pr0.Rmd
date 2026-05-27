@@ -1,0 +1,366 @@
+---
+title: "Pr0-Remostreig"
+author: 'Enola Garcia Carbó NIU: 1708253'
+date: "2026-02-19"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# QÜESTIÓ 1
+
+**1. Estadística descriptiva de les dades. Modificar errors**
+```{r}
+library(readxl)
+data <- read_excel("dades_ratio_dits_Remostreig_2022-23.xlsx")
+data$sexe <- as.factor(data$sexe)
+data$Curs <- as.factor(data$Curs)
+data$parella <- as.factor(data$parella)
+summary(data)
+```
+
+Considerem eliminar la observació 4, ja que per una banda té valor perdut a `Sexe` i 6 a `menut`, que s'allunya molt de la mitjana. Com no sabem quin valor és realment, l'eliminem
+
+```{r}
+data[4,]
+data <- data[-4,]
+```
+Per altra banda, observem que a la variable `parella` hi ha valors en majúscules i minúscules, ho corregim passant-los tot a minúscules:
+```{r}
+data$parella <- tolower(data$parella)
+data$parella <- as.factor(data$parella)
+```
+
+Tornem a observar el summary() i apareixen 2 NA's a la variable `Sexe`, com més endavant volem comparar homes i dones, si ho deixem poden suposar un problema. Per aquest motiu, eliminem aquestes dues observacions, ja que és un número reduït de files
+```{r}
+summary(data)
+data <- data[-c(4,55),]
+```
+
+
+**2. Convertim les puntuacions a escala 0-10 i les mesures de dits en centímetres**
+```{r}
+# Puntuacions a escala 0-10
+data$punt_pare <- data$punt_pare / 10
+data$punt_mare <- data$punt_mare / 10
+data$punt_parella <- data$punt_parella / 10
+data$sensacio_periode_covid <- data$sensacio_periode_covid / 10
+
+# Mesures dels dits a centímetres (actualment en mm)
+data$polze <- data$polze / 10
+data$index <- data$index / 10
+data$mig <- data$mig / 10
+data$anular <- data$anular / 10
+data$menut <- data$menut / 10
+
+summary(data)
+```
+
+
+
+**3. Fem un corrplot per a les variables numèriques de la base de dades**
+```{r}
+library(corrplot)
+# variables numèriques (excloem ID)
+data_num <- data[, sapply(data, is.numeric)]
+
+# matriu de correlació
+corr <- cor(data_num, use = "complete.obs")
+
+corrplot(corr, method = "circle", type = "upper", 
+         tl.col = "black",tl.srt = 45,
+         title = "Matriu de Correlacions", mar=c(0,0,1,0))
+```
+
+
+**4. Calculem la matriu de correlacions dels dits de la mà.**
+
+```{r}
+dits <- data[, c("polze", "index", "mig", "anular", "menut")]
+cor(dits, use = "complete.obs")
+```
+Els dits més correlacionats són el **mig i l'index** amb una correlació positiva de 0.945, seguits de l'**anular i el mig** amb 0.939, ja que les estructures òssies són similars. 
+
+Els dits menys correlacionats són el **polze i el menut** amb correlació de 0.572. El polze és el dit amb menys correlació amb la resta, ja que té una funció i estructura més diferenciada de la resta.
+
+**5. Calculem la variable 2D: 4D ratio dels dits. Fem una descripció i calculem els percentils 25\%, 50\% (mediana) i 75\%. Fem un histograma de la variable**
+
+L'estudi de Bailey i Hurd suggereix que la ràtio entre el segon dit (índex) i el quart (anular) és un indicador de trets biològics.
+```{r}
+# Calculem la ràtio
+data$ratio_2D4D <- data$index / data$anular
+
+# Percentils 
+quantile(data$ratio_2D4D, probs = c(0.25, 0.5, 0.75), na.rm = TRUE)
+
+# Histograma
+hist(data$ratio_2D4D, main = "Histograma de la Ràtio 2D:4D", 
+     xlab = "Ràtio (Índex/Anular)", col = "lightpink", border = "white", breaks = 10)
+```
+La ràtio mitjana se situa al voltant de $0.987$. El percentil $50$ (mediana) ens indica que la meitat de la mostra té una ràtio inferior a $0.988$.
+
+
+**6. Comparem els valors d'aquesta variable segons homes i dones**
+```{r}
+# Comparació de mitjanes
+aggregate(ratio_2D4D ~ `sexe`, data = data, FUN = mean)
+t.test(ratio_2D4D ~ `sexe`, data = data)
+# Visualització
+boxplot(ratio_2D4D ~ `sexe`, data = data, 
+        main = "Ràtio 2D:4D per Sexe", 
+        col = c("rosybrown1", "dodgerblue4"),
+        ylab = "Ràtio")
+```
+Segons l'article, els homes tenen una ràtio 2D:4D més baixa que les dones, 
+és a dir, el dit anular (4) és proporcionalment més llarg que el índex (2).
+
+Per les nostres dades, les dones `d` mostren una mitjana lleugerament superior que els homes `h`, la qual cosa és coherent amb la literatura científica, però segons el test, aquesta diferència no és significativa.
+
+
+
+**7. Testem la hipòtesi de l'article amb les dades de la mostra, correlacionant el seu valor amb les diferents puntuacions obtingudes**
+```{r}
+#Separem en homes i dones
+data_homes=subset(data, `sexe`=="h")
+data_dones=subset(data, `sexe`=="d")
+
+cor(data_homes$ratio_2D4D, data_homes[, c("punt_pare", "punt_mare", "punt_parella")], use = "pairwise.complete.obs")
+
+cor(data_dones$ratio_2D4D, data_dones[, c("punt_pare", "punt_mare", "punt_parella")], use = "pairwise.complete.obs")
+
+```
+S'ha separat el dataset en homes i dones, ja que l'article diu que el comportament canvia segons el sexe.
+
+Com podem veure a l'output de les correlacions, en primer lloc, no hi ha cap correlació elevada entre la variable ratio i les de puntuació, únicament una mica el del ratio dels homes i la puntuació de parella, però, aquest valor no és preocupant, també, observant els valors entre homes i dones, aquests, presenten diferencies, però no tot en contra dels homes, ja que en puntuació del pare, les dones estan molt més correlacionades que els homes, a la puntuació de la mare, els homes estan una mica per sobre i és a la puntuació de parella on els homes estan realment més correlacionades als homes.
+
+**8. Ajustem un model lineal amb les puntuacions del pare i la mare.**
+```{r}
+model_pares <- lm(punt_mare ~ punt_pare, data = data)
+
+summary(model_pares)
+```
+Els paràmetres del model són:
+
+- $\beta_0=5.7428$ és el valor teòric de la puntuació amb la mare si la puntuació amb el pare és zero
+
+- $\beta_1=0.2998$: per cada punt que augmenta la relació amb el pare, la relació amb la mare augmenta, de mitjana, 0.3 punts aproximadament. Aquesta relació és estadísticament significativa (pvalor<0.05)
+
+Per altra, el $R^2=1284$, això vol dir que la puntuació del pare només explica un 12.8\% de la variabilitat de la puntuació de la mare. La resta (87.2\%) depèn d'altres factors no inclosos en aquest model.
+
+
+**9. Fem un diagnòstic dels residus del model**
+```{r}
+plot(model_pares)
+```
+iker
+
+
+**10. Volem saber el d'alumnes que es porta almenys amb un 7 amb els seus dos pares**
+
+Primer filtrem la base de dades per veure quins alumnes ho compleixen.
+```{r}
+data10 <- subset(data, punt_pare>=7 & punt_mare>=7); data10
+```
+```{r}
+nrow(data10)/nrow(data)
+```
+Aproximadament un $64.29\%$ dels alumnes, tenen una bona relació ($\geq 7$) amb el pare i amb la mare.
+
+
+**11. Fem una taula de contingència per saber el nombre de persones amb parella o segons el sexe. Qui dels dos té un percentatge de parelles superior?**
+```{r}
+taula <- table(data$sexe, data$parella)
+addmargins(taula)
+
+# Proporcions
+prop.table(taula, margin=1)*100
+```
+Segons les dades, tenen parella un $62.96\%$ de les dones i un $48.15\%$ dels homes. En aquesta mostra, el sexe femení té un percentatge de parelles superior.
+
+
+**12. Ajustem un model de Regressió Logística per determinar la mateixa associació que en l'apartat anterior. Calculem les probabilitats predites pel model i els intervals de confiança del 95\% amb la llibreria `emmeans`.**
+```{r}
+library(emmeans)
+
+model_log1 <- glm(parella ~ sexe, data = data, family = binomial)
+
+# Probabilitats
+prediccions <- emmeans(model_log1, ~ sexe, type = "response")
+print(prediccions)
+```
+El model estima que la probabilitat de tenir parella és del $63\%$ per a les dones i del $48.1\%$ (IC 95%: $[43.8\%, 78.8\%]$) per als homes (IC 95%: $[30.4\%, 66.4\%]$). 
+
+
+
+**13. Ajustem el mateix model de l'apartat anterior però ara covariant segons la ratio dels dits. Tornem a calcular les probabilitats predites (ajustades o covariades).**
+```{r}
+model_log2 <- glm(parella ~ sexe + ratio_2D4D, data = data, family = binomial)
+
+# Probabilitats
+prediccions_ajustades <- emmeans(model_log2, ~ sexe, type = "response")
+print(prediccions_ajustades)
+```
+Mirem la significancia de les variables
+```{r}
+summary(model_log2)
+```
+El p-valor associat a la variable `ratio_2D4D` és aproximadament $0.6$. Com que és molt superior a $0.05$, podem concloure que la ràtio dels dits no és significativa per explicar si una persona té parella o no en aquesta mostra
+
+
+Calculem el VIF per detectar multicolinealitat
+```{r}
+library(car) 
+vif(model_log2)
+```
+El VIF per a les variables és molt proper a 1. Un valor inferior a 5 indica que no hi ha problemes de multicolinealitat.
+
+Des d'un punt de vista tècnic, el model és acceptable perquè no viola supòsits de colinealitat (VIF baix), però des d'un punt de vista pràctic és un model feble, ja que cap de les variables és un predictor realment fort de l'estat civil en aquest conjunt de dades
+
+
+**14. Fem un model d'interacció per saber com es porten nois o noies amb cada pare. Fem una comparació 2 a 2.**
+
+Per fer un model d'interacció, necessitem que cada puntuació sigui una observació independent, amb una variable que indiqui si es refereix al pare o a la mare.
+```{r}
+library(tidyr)
+data_llarga <- data %>% 
+  pivot_longer(
+    cols = c(punt_pare, punt_mare), 
+    names_to = "progenitor", 
+    values_to = "puntuacio"
+  )
+```
+
+Ajustem el model per saber si la relació amb el pare/mare depèn del sexe de l'alumne
+```{r}
+model_interaccio <- lm(puntuacio ~ sexe * progenitor, data = data_llarga)
+summary(model_interaccio)
+```
+
+Fem comparacions 2 a 2 amb `emmeans`
+```{r}
+emmeans(model_interaccio, pairwise ~ progenitor | sexe, type = "response")
+```
+Les noies (`d`) tenen, de mitjana, una puntuació de 8.28 amb la mare i 7.99 amb el pare. En canvi, els nois (`h`) tenen una mitjana de 7.69 amb la mare i 7.05 amb el pare
+
+S'observa que les noies tendeixen a puntuar més alt la relació amb ambdós progenitors en comparació amb els nois. 
+
+Tant nois com noies tendeixen a puntuar millor la relació amb la mare que amb el pare, tot i que aquesta diferència és més forta en els nois (una diferència de $0.64$ punts) que en les noies ($0.28$ punts).
+
+El p-valor de la interacció ($p = 0.608$) no és significatiu. Això indica que, tot i que les mitjanes canvien, el "patró" de relació (estimar més la mare que el pare) és similar en ambdós sexes i no hi ha una evidència estadística forta que els nois es portin "especialment" millor o pitjor amb un progenitor concret de forma diferent a les noies.
+
+\clearpage
+# QÜESTIÓ 2
+
+**1. Fem un histograma de la variable alçada.**
+```{r}
+hist(data$altura, breaks=10, main = "Histograma de l'Alçada", xlab = "Alçada (cm)")
+
+mu=mean(data$altura);mu
+sigma=sd(data$altura);sigma
+```
+
+Com podem veure a l'histograma, podem dir que el model més adequat és la distribució Normal, amb paràmetres calculats: $\mu=171.8929$ i $\sigma^2=7.62455$.
+
+```{r}
+set.seed(42)
+remostra_param=rnorm(1000, mean = mu, sd = sigma)
+
+#Comparació:
+
+df_comp <- data.frame(
+  valor = c(data$altura, remostra_param),
+  origen = c(rep("Dades Reals", length(data$altura)),
+             rep("Remostra Normal", 1000)))
+library(ggplot2)
+ggplot(df_comp, aes(x = valor, fill = origen)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Comparació: Dades Reals vs Model Paramètric (Normal)",
+       x = "Alçada (cm)", y = "Densitat", fill = "") +
+  theme_minimal()
+```
+
+Al ser la distribució Normal, aquesta pot generar valors extrems, inclús valors negatius, cosa que en una alçada no té sentit, a més, no captura bé les asimetries o outliers de la mostra real.
+
+Es per això, que seria més òptim, utilitzar Bootstrap o una remostra no paramétrica, també seria una bona opció, una distribució que permeti la assimetria.
+
+**2. Definició d'estrategia.**
+
+Per saber si una persona té parella o no, podriem considerar la Bernoulli o la binomial per a n intents. Això ho hauriem de bassar en la proporció de la mostra.
+
+Per tant, s'hauria de calcular la probabilitat de tenir parella a la mostra, i posteriorment generar valors aleatoris on cada observació té una probabilitat p de tenir parella:
+
+```{r}
+p=length(which(data$parella=="si"))
+p=p/length(data$ID);p
+
+remostra_parella <- sample(c("si", "no"), size = 1000, replace = TRUE,prob = c(p, 1 - p))
+
+print(table(remostra_parella))
+```
+
+**3. Definició model multivariant.**
+
+Com que els dits estan altament correlacionats, ja que formen part de la mà, i si aquesta és gran, els dits també ho son, s'ha optat per una distribució Normal Multivariant.
+
+Model: Es calcula un vector de mitjanes dels 5 i la seva matriu de variancies covariancies.
+
+Posteriorment es generen 1000 noves observacions que mantenen les característiques mitjanes dels dits i a més les seves correlacions.
+
+```{r}
+library(MASS)
+
+dits=data[,5:9]
+mu_dits=colMeans(dits);mu_dits
+cov_dits= cov(dits);cov_dits
+
+remostra_multi=as.data.frame(mvrnorm(n = 1000,
+mu = mu_dits,Sigma = cov_dits))
+
+
+cat("\nPrimeres files de la remuestra multivariada:\n")
+print(head(remostra_multi))
+
+df_comp_dits <- data.frame(
+  valor  = c(dits$mig, remostra_multi$mig),
+  origen = c(rep("Dades Reals", nrow(dits)),
+             rep("Remuestra Multivariada", 1000))
+)
+
+ggplot(df_comp_dits, aes(x = valor, fill = origen)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Comparació del dit 'mig': Dades Reals vs Remuestra Multivariada",
+       x = "Longitud (cm)", y = "Densitat", fill = "") +
+  theme_minimal()
+```
+
+**4. Reeplaçament de les dades dels dits.**
+
+```{r}
+n=nrow(dits)
+remostra_bootstrap=dits[sample(1:n, size = n, replace = TRUE), ]
+
+#Primeres files:
+print(head(remostra_bootstrap))
+
+#Comparació de mitjanes:
+comp_means=rbind(
+  Original  = round(colMeans(dits), 3),
+  Bootstrap = round(colMeans(remostra_bootstrap), 3)
+)
+
+print(comp_means)
+```
+
+
+
+
+
+
+
+
+
+

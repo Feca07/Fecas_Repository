@@ -1,0 +1,96 @@
+---
+title: "Pr 1"
+author: 
+- "Enola Garcia NIU: 1708253"
+- "Iker Fernandez NIU: 1704341"
+date: "2026-02-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+# Exercici 4: The lost boarding-pass problem:
+
+Hi ha 100 persones embarcant en un avió de 100 places. La primera persona se n'adona dins de l'avió que en algun moment ha perdut el pas d'abordar i no se'n recorda del seu seient. En lloc de tornar enrera a buscar-ho, s'asseu en un seient a l'atzar.
+
+La resta de passatgers va entrant i seient al seu lloc. Quan un passatger veu que el seu seient està ocupat per una altra persona, escull a l'atzar un altre seient buit.
+
+El procediment continua igual fins que entra l'últim passatger.
+
+*Idea*: Suposem que les persones entren a l'avió en l'ordre dels seus seients, de l'1 al 100.
+
+```{r}
+sim_boarding <- function() {
+  n <- 100
+  available_seats <- 1:n
+  occupied_count <- 0
+  
+  # passatger 1 escull un seient a l'atzar
+  seat_taken <- sample(available_seats, 1)
+  available_seats <- available_seats[available_seats != seat_taken]
+  
+  # passatgers 2 fins al 99
+  for (i in 2:(n - 1)) {
+    if (i %in% available_seats) {
+      # seient lliure
+      available_seats <- available_seats[available_seats != i]
+    } else {
+      # seient ocupat
+      occupied_count <- occupied_count + 1
+      # escull un seient lliure a l'atzar
+      seat_taken <- sample(available_seats, 1)
+      available_seats <- available_seats[available_seats != seat_taken]
+    }
+  }
+  
+  # passatger 100
+  last_in_own_seat <- 0
+  
+  if (n %in% available_seats) {
+    # el seient 100 està lliure
+    last_in_own_seat <- 1
+  } else {
+    # el seient 100 està ocupat
+    occupied_count <- occupied_count + 1
+  }
+  
+  # Retornem els dos resultats que ens demana l'enunciat
+  return(c(last_in_own_seat, occupied_count))
+}
+
+set.seed(155)
+
+# 10000 rèpliques
+n_reps <- 10000
+returned_list <- replicate(n_reps, sim_boarding())
+
+last_seat_results <- returned_list[1, ]
+occupied_results  <- returned_list[2, ]
+```
+
+
+**a) Simulem aquesta situació per tal d'estimar la probabilitat que l'últim passatger segui en el seient que inicialment tenia assignat. Naturalment, es tracta de replicar moltes vegades la simulació per tenir una mostra, i estimar la probabilitat amb la proporció mostral.**
+```{r}
+mean(last_seat_results) 
+```
+Per tant, la probabilitat que l'últim passatger segui al seu lloc és del `r mean(last_seat_results)*100`\%.
+
+
+**b) Estimem l'esperança i la variància del nombre de persones que troben el seu seient ocupat quan puguen a l'avió, mitjançant la mitjana i la variància mostrals**
+```{r}
+mean(occupied_results)
+var(occupied_results)
+```
+
+- L'esperança de persones que troben el seient ocupat és de `r mean(occupied_results)` 
+
+- La variància de persones que troben el seient ocupat és de `r var(occupied_results)`
+
+
+
+

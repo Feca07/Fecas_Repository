@@ -1,0 +1,260 @@
+---
+title: "pr3"
+author:
+- Iker Fernandez (1704341)
+- Enola Garcia (1708253)
+- Didac Campuzano (1703766)
+- Marta Baurier (1668618)
+- Jana Labrador (1704595)
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    number_sections: true
+    extra_dependencies: float
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',warning = FALSE, message = FALSE, echo = FALSE)
+```
+
+# Creuar dades 
+
+Creuem les dades de totes les bases de dades, el codi el podem veure a l'annex\footnote{Annex \ref{anx:carrega}}
+
+```{r carrega}
+library(haven)
+library(dplyr)
+
+uab_demo3 <- read_sas("uab_demo3.sas7bdat", NULL)
+uab_drugs3 <- read_sas("uab_drugs3.sas7bdat", NULL)
+uab_atcdrugs3 <- read_sas("uab_atc_drugs3.sas7bdat", NULL)
+
+data1 <- merge(uab_demo3, uab_drugs3, by.x="PatNo", by.y="PatNo")
+data <- merge(data1, uab_atcdrugs3, by.x="PatNo", by.y="PatNo")
+
+data <- data %>%
+  mutate(across(where(~ all(unique(.x) %in% c(0, 1, 2, 3, NA,"M","F"))), as.factor))
+data$NFractura=as.factor(data$NFractura)
+levels(data$NFractura)[levels(data$NFractura) %in% c("2", "3", "4", "5", "6", "7")]=">=2"
+data$ServeiAlta=as.factor(data$ServeiAlta)
+data$Edat=cut(data$Edat,breaks=c(50, 65, 81, 95),labels = c("51-65","66-81","82-95"),include.lowest = TRUE)
+data=subset(data, select=-c(Hipogonad, FX_familia))
+data$Smoker=factor(data$Smoker,levels = c(0,1,2),labels = c("No Fumador", "Fumador Actiu", "Ex-Fumador"))
+data$ALCOHOL=factor(data$ALCOHOL,levels = c(0,1,2),labels = c("No consumeix", "Poc consum","Consum moderat"))
+data$tipus_diabetis=factor(data$tipus_diabetis,levels = c(0,1,2),labels = c("No diabetis","Tipus 1","Tipus 2"))
+
+
+
+```
+
+# Preparar taula 
+
+```{r caract, echo=F, results=F}
+library(dplyr)
+library(tableone)
+
+variables_demo <- c("Sexe", "Edat", "MatchCC" ,"PES", "TALLA", "IMC",
+                  "Smoker","ALCOHOL", "Artritis_reumatoide",
+                  "Fractura","NFractura","Diabetis","tipus_diabetis","Osteporosi", 
+                  "Densitometries","neoplasia","HiperTiroidisme","Malnutricio",
+                  "Malabsorcio","Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4")
+
+cat_vars <- c("Sexe", "Smoker", "ALCOHOL", "Artritis_reumatoide","Edat", 
+              "Fractura", "Diabetis", "tipus_diabetis", "Osteporosi", "Densitometries",
+              "neoplasia", "HiperTiroidisme", "Malnutricio", "Malabsorcio", 
+              "Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4")
+
+taula_demo <- CreateTableOne(
+  vars = variables_demo,
+  strata = "ControlCas.x",
+  data = data,
+  factorVars = cat_vars,
+  includeNA = FALSE
+)
+
+tbl<- print(taula_demo)
+colnames(tbl)=c("Control","Cas","P_valor"," ")
+```
+
+```{r}
+library(kableExtra)
+library(knitr)
+kable(tbl,caption = "Característiques de la població",align = "lccc")%>%
+  add_indent(c(4:6, 12:14, 16:18, 22:24, 27:29))
+```
+
+# Analitzar la exposició als fàrmacs i els riscs associats de fractura
+
+## Anàlisi descriptiva d'exposició en els grups de cas i control
+
+```{r descrip,results=F}
+variables_farmacs <- c("CortInh",
+"CortSist","CortSistIniBf3m","CortSistExpLt3m","CortInhIniBf3m",
+"CortInhExpLt3m","ADO_no_glitazona","Bisf","ADepreISRS",
+"ADepreNoISRS","insulina","H_SN","N_SN","H01_SN","H02_SN",
+"N06_SN","N06A_SN","N06AA_SN","N06AB_SN","N06AX_SN","R03BA_SN")
+
+variables_cat <- variables_farmacs[!grepl("Dias", variables_farmacs)]
+
+taula_des <- CreateTableOne(
+  vars = variables_farmacs,
+  factorVars = variables_cat,
+  strata = "ControlCas.x",
+  data = data
+)
+
+tbl=print(taula_des)
+colnames(tbl)=c("Control","Cas","P_valor"," ")
+class(tbl)
+```
+
+```{r descrip2}
+library(knitr)
+kable(tbl,caption = "\\label{tab:descrip}Comparació de Medicaments i teràpies",align = "lccc")
+```
+
+
+
+
+## Anàlisi inferencial cru i ajustat
+
+### Anàlisi logística "crua" 
+
+```{r logcru, message=FALSE, results=F}
+
+variables_a_excloure <- c("PatNo", "ServeiAlta", "Sexe", "Edat", "MatchCC", "MatchCC.x", "MatchCC.y", "PES", "TALLA", "IMC",
+                  "Smoker","ALCOHOL", "Artritis_reumatoide",
+                  "Fractura","NFractura","Diabetis","tipus_diabetis","Osteporosi", 
+                  "Densitometries","neoplasia","HiperTiroidisme","Malnutricio",
+                  "Malabsorcio","Malaltia_Hep_Cro","OthRiskFract", "CountActualGE4", 
+  "ControlCas.x", "ControlCas.y", "ControlCas")
+
+totes_les_columnes <- names(data)
+
+variables_analisi <- setdiff(totes_les_columnes, variables_a_excloure)
+
+
+resultats_2b <- lapply(variables_analisi, function(variable) {
+
+    formula_model <- as.formula(paste("ControlCas ~", variable))
+    
+    model <- glm(formula_model, data = data, family = binomial)
+    
+    coeficients <- summary(model)$coefficients
+
+    estimacio <- coef(model)[2]
+    p_valor <- coeficients[2,4]
+    
+    OR <- exp(estimacio)
+    IC <- exp(confint(model)[2, ])
+    
+    return(data.frame(
+      OR_Cru = round(OR, 2),
+      IC_Inferior = round(IC[1], 2),
+      IC_Superior = format(round(IC[2], 2),nsmall=2),
+      P_valor = round(p_valor, 3)
+    ))
+    })
+
+taula_final_2b <- do.call(rbind, resultats_2b)
+
+tab <- print(taula_final_2b)
+```
+
+```{r logcru2}
+kable(tab, caption="\\label{tab:logcru}Anàlisi per regressió logística crua de les variables",align = "lccc")
+```
+
+Els resultats mostren una associació positiva i estadísticament significativa per a la gran majoria de fàrmacs i grups terapèutics analitzats. A diferència de dissenys anteriors amb controls hospitalaris, l’ús de controls de població general (atenció primària) posa de manifest una diferència molt marcada en el perfil d’exposició entre casos i controls.
+
+Els resultats més destacats es troben en els **antidepressius** (`N06A_SN`), amb una OR crua de 4.28 `(IC: 2.76–6.63)`. Dins d'aquest grup, els ISRS (`N06AB_SN`) presenten el risc més elevat (`OR=4.46`), xifra que és coherent amb el que descriu l'article de referència (Gorgas et al., 2021) (REFERENCIA), on s'apunta que aquests fàrmacs no només augmenten el risc de caigudes per sedació, sinó que podrien afectar directament el metabolisme ossi.
+
+
+També s'observen riscos molt elevats en els **bisfosfonats** (`OR=5.06`) i en la diabetis/insulina. Hem d'interpretar aquestes OR tan altes amb precaució: no indiquen necessàriament que el fàrmac causi la fractura, sinó que els casos són pacients amb més patologies (més fràgils, amb més osteoporosi i més diabetis) que els controls de primària. Aquesta gran diferència basal explica per què les OR crues són tan elevades en comparació amb estudis on els controls també estan malalts.
+
+
+Finalment, cal comentar la presència de valors NA o **intervals extremadament amplis** en variables com `H01_SN`. Això es deu a la 'separació perfecta' o falta d'esdeveniments en algunes cel·les de la taula de contingència (per exemple, zero controls exposats), fet que impedeix al model logístic fer una estimació fiable del risc per a aquestes variables puntuals.
+
+### Anàlisi logística ajustada
+
+L'anàlisi crua detecta un increment de risc generalitzat, però la magnitud d'aquestes OR suggereix la presència d'un fort biaix de confusió per indicació. Per tant, l'anàlisi ajustada que es veu a continuació, és imprescindible per intentar aïllar l'efecte real dels antidepressius de la fragilitat general del pacient.
+
+Ajustar per: Diabetis, alcohol, smoker, Osteporosi, Fractura
+
+
+```{r,results=F}
+covariables <- c("Osteporosi","Fractura","ALCOHOL","Smoker","Diabetis","CountActualGE4")  
+
+resultats_ajustats <- lapply(variables_analisi, function(variable) {
+  
+  formula_model <- as.formula(
+    paste("ControlCas ~", variable, "+", paste(covariables, collapse = " + "))
+  )
+  
+    model <- glm(formula_model, data = data, family = binomial)
+    coeficients <- summary(model)$coefficients
+    
+    estimacio <- coef(model)[2]
+    p_valor <- coeficients[2,4]
+    IC <- exp(confint(model)[2, ])
+      
+    return(data.frame(
+      OR_Ajustat = round(exp(estimacio), 2),
+      IC_Inferior = round(IC[1], 2),
+      IC_Superior = format(round(IC[2], 2),nsmall=2),
+      P_valor = round(p_valor, 3)
+    ))
+})
+
+
+taula_final_ajustada <- do.call(rbind, resultats_ajustats)
+tab2 <- print(taula_final_ajustada)
+```
+
+```{r logajust2}
+kable(tab2, caption = "\\label{tab:logajust}Anàlisi per regressió logística ajustada per covariables",align = "lcccc")
+```
+
+## Comparació amb les de l'article
+
+# Estadístics descriptius, mesures de risc, inferencies...
+
+# Hi ha factors de confusió?
+
+# Discussió
+
+# Avaluació de l'article original des del punt de vista estadístic i metodològic
+
+
+\clearpage
+\appendix
+
+# Annex
+
+## Creuar data
+
+\label{anx:carrega}
+
+```{r ref.label='carrega', echo=TRUE, eval=FALSE}
+```
+
+## Taula característiques
+
+\label{anx:caract}
+
+```{r ref.label='caract', echo=TRUE, eval=FALSE}
+```
+
+## Anàlisi d'exposició als fàrmacs i els riscs associats de fractura
+
+### Anàlisi descriptiva
+
+\label{anx:descrip}
+
+```{r ref.label='descrip', echo=TRUE, eval=FALSE}
+```
+
+```{r ref.label='descrip2', echo=TRUE, eval=FALSE}
+```

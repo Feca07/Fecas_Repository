@@ -1,0 +1,1124 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break\parbox[t]{\linewidth}{\strut\ignorespaces#1\strut}}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Pràctica 3 : Cas-control per avaluar la relació entre exposició a fàrmacs antidepressius i fractura de maluc (Disseny aparellat).},
+  pdfauthor={Iker Fernandez (1704341); Enola Garcia (1708253); Didac Campuzano (1703766); Marta Baurier (1668618); Jana Labrador (1704595)},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Pràctica 3 : Cas-control per avaluar la relació entre exposició a
+fàrmacs antidepressius i fractura de maluc (Disseny aparellat).}
+\author{Iker Fernandez (1704341) \and Enola Garcia (1708253) \and Didac
+Campuzano (1703766) \and Marta Baurier (1668618) \and Jana Labrador
+(1704595)}
+\date{2026-04-22}
+
+\begin{document}
+\maketitle
+
+L'objectiu d'aquest estudi és avaluar l'associació entre l'exposició a
+fàrmacs antidepressius i el risc de fractura de maluc. En aquesta
+anàlisi, s'han descartat els controls hospitalaris previs per utilitzar
+nous controls procedents d'atenció primària, aparellats en una relació
+1:4 per edat, sexe, centre i data de consulta. Això permet treballar amb
+una població de referència més coherent, millorant la validesa externa
+dels resultats
+
+Creuem les dades de totes les bases de dades, el codi el podem veure a
+l'annex\footnote{Annex \ref{anx:carrega}}
+
+La Taula \ref{tab:tab1} mostra els estadístics descriptius de les
+característiques de la població segons el grup d'estudi (controls i
+casos). Per a les variables categòriques es presenten les freqüències
+absolutes i els percentatges, mentre que per a les variables
+quantitatives es mostren les mitjanes i les desviacions estàndard.
+
+\begin{longtable}[t]{llccc}
+\caption{\label{tab:unnamed-chunk-1}\label{tab:tab1}Característiques de la població}\\
+\toprule
+ & Control & Cas & P\_valor & \\
+\midrule
+n & 524 & 131 &  & \\
+Sexe = M (\%) & 108 (20.6) & 27 (20.6) & 1.000 & \\
+Edat (\%) &  &  & 1.000 & \\
+\hspace{1em}51-65 & 28 ( 5.3) & 7 ( 5.3) &  & \\
+\hspace{1em}66-81 & 172 (32.8) & 43 (32.8) &  & \\
+\addlinespace
+\hspace{1em}82-95 & 324 (61.8) & 81 (61.8) &  & \\
+PES (mean (SD)) & 67.53 (13.04) & 64.84 (11.68) & 0.173 & \\
+TALLA (mean (SD)) & 155.47 (8.02) & 152.36 (7.83) & 0.036 & \\
+IMC (mean (SD)) & 27.76 (4.83) & 27.55 (4.90) & 0.809 & \\
+Smoker (\%) &  &  & 0.001 & \\
+\addlinespace
+No Fumador & 502 (95.8) & 117 (89.3) &  & \\
+\hspace{1em}Fumador Actiu & 16 ( 3.1) & 6 ( 4.6) &  & \\
+\hspace{1em}Ex-Fumador & 6 ( 1.1) & 8 ( 6.1) &  & \\
+\hspace{1em}ALCOHOL (\%) &  &  & 0.058 & \\
+No consumeix & 465 (88.7) & 123 (93.9) &  & \\
+\addlinespace
+\hspace{1em}Poc consum & 56 (10.7) & 6 ( 4.6) &  & \\
+\hspace{1em}Consum moderat & 3 ( 0.6) & 2 ( 1.5) &  & \\
+\hspace{1em}Artritis\_reumatoide = 1 (\%) & 5 ( 1.0) & 1 ( 0.8) & 1.000 & \\
+Fractura = 1 (\%) & 2 ( 0.4) & 55 (42.0) & <0.001 & \\
+NFractura (\%) &  &  & <0.001 & \\
+\addlinespace
+0 & 522 (99.6) & 76 (58.0) &  & \\
+\hspace{1em}1 & 2 ( 0.4) & 48 (36.6) &  & \\
+\hspace{1em}>=2 & 0 ( 0.0) & 7 ( 5.3) &  & \\
+\hspace{1em}Diabetis = 1 (\%) & 118 (22.5) & 45 (34.4) & 0.007 & \\
+tipus\_diabetis (\%) &  &  & 0.007 & \\
+\addlinespace
+No diabetis & 406 (77.5) & 86 (65.6) &  & \\
+\hspace{1em}Tipus 1 & 4 ( 0.8) & 0 ( 0.0) &  & \\
+\hspace{1em}Tipus 2 & 114 (21.8) & 45 (34.4) &  & \\
+\hspace{1em}Osteporosi = 1 (\%) & 13 ( 2.5) & 17 (13.0) & <0.001 & \\
+Densitometries = 1 (\%) & 0 ( 0.0) & 8 ( 6.1) & <0.001 & \\
+\addlinespace
+neoplasia = 1 (\%) & 61 (11.6) & 12 ( 9.2) & 0.514 & \\
+HiperTiroidisme = 1 (\%) & 3 ( 0.6) & 4 ( 3.1) & 0.046 & \\
+Malnutricio = 1 (\%) & 1 ( 0.2) & 3 ( 2.3) & 0.033 & \\
+Malabsorcio = 1 (\%) & 1 ( 0.2) & 0 ( 0.0) & 1.000 & \\
+Malaltia\_Hep\_Cro = 1 (\%) & 7 ( 1.3) & 5 ( 3.8) & 0.126 & \\
+\addlinespace
+OthRiskFract = 1 (\%) & 75 (14.3) & 22 (16.8) & 0.564 & \\
+CountActualGE4 = 1 (\%) & 222 (42.4) & 99 (75.6) & <0.001 & \\
+\bottomrule
+\end{longtable}
+
+Cal destacar que diverses variables presenten una proporció elevada de
+valors perduts (NA). Tot i que aquestes variables s'han inclòs en
+l'anàlisi descriptiva, els seus resultats s'han d'interpretar amb
+cautela, ja que aquest alt contingut de dades mancants pot limitar la
+seva fiabilitat i representativitat. Per aquest motiu, en la
+interpretació global no es dona el mateix pes a totes les variables.
+
+En general, la majoria de variables presenten distribucions similars
+entre els grups de casos i controls, sense diferències estadísticament
+significatives. Això s'observa, per exemple, en variables com el sexe,
+l'edat, el MatchCC, l'IMC o la presència de neoplàsia, on els valors són
+molt semblants entre ambdós grups.
+
+Tanmateix, s'observen diferències estadísticament significatives en
+algunes variables com el servei d'alta, la talla, el consum de tabac
+(Smoker), la presència de fractura i el nombre de fractures, la diabetis
+i el tipus de diabetis, l'osteoporosi, la realització de densitometries,
+l'hipertiroïdisme, la malnutrició i la variable CountActualGE4.
+
+Pel que fa als mètodes estadístics utilitzats, per a les variables
+categòriques s'han aplicat proves de comparació de proporcions,
+principalment el test de chi-quadrat o el test exacte de Fisher quan les
+freqüències eren baixes. Per a les variables quantitatives s'ha
+utilitzat el test no paramètric de Wilcoxon (Mann-Whitney), adequat en
+situacions on no es pot assumir normalitat en la distribució de les
+dades.
+
+Un element destacable és que variables directament relacionades amb el
+resultat, com la fractura i el nombre de fractures, presenten
+diferències molt marcades entre casos i controls, fet esperable atès que
+formen part de la definició dels grups. També s'observa una major
+prevalença d'algunes condicions clíniques com la diabetis o
+l'osteoporosi en els casos, la qual cosa podria suggerir una possible
+associació amb el risc de fractura.
+
+No obstant això, aquesta anàlisi és purament descriptiva i no té en
+compte possibles factors de confusió. A més, la presència de dades
+mancants en algunes variables pot introduir incertesa en les
+estimacions. Per tant, el fet que una variable presenti una major
+proporció en un grup no implica necessàriament una relació causal. Per
+aquest motiu, en les anàlisis posteriors es durà a terme una regressió
+logística, tant en forma crua com ajustada per covariables, per tal
+d'avaluar aquestes associacions de manera més robusta.
+
+\clearpage
+
+\section{Analitzar la exposició als fàrmacs i els riscs associats de
+fractura}\label{analitzar-la-exposiciuxf3-als-fuxe0rmacs-i-els-riscs-associats-de-fractura}
+
+\subsection{Anàlisi descriptiva d'exposició en els grups de cas i
+control}\label{anuxe0lisi-descriptiva-dexposiciuxf3-en-els-grups-de-cas-i-control}
+
+La taula \ref{tab:descrip} mostra la distribució dels diferents fàrmacs
+i grups terapèutics entre casos i controls, permetent comparar el
+percentatge d'exposició en ambdós grups.
+
+\begin{longtable}[]{@{}llccc@{}}
+\caption{\label{tab:descrip}Comparació de Medicaments i
+teràpies}\tabularnewline
+\toprule\noalign{}
+& Control & Cas & P\_valor & \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+& Control & Cas & P\_valor & \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+n & 524 & 131 & & \\
+CortInh = 1 (\%) & 25 ( 4.8) & 15 (11.5) & 0.008 & \\
+CortSist = 1 (\%) & 6 ( 1.1) & 5 ( 3.8) & 0.080 & \\
+CortSistIniBf3m = 1 (\%) & 6 ( 1.1) & 3 ( 2.3) & 0.557 & \\
+CortSistExpLt3m = 1 (\%) & 6 ( 1.1) & 3 ( 2.3) & 0.557 & \\
+CortInhIniBf3m = 1 (\%) & 20 ( 3.8) & 10 ( 7.6) & 0.102 & \\
+CortInhExpLt3m = 1 (\%) & 20 ( 3.8) & 10 ( 7.6) & 0.102 & \\
+ADO\_no\_glitazona = 1 (\%) & 47 ( 9.0) & 26 (19.8) & 0.001 & \\
+Bisf = 1 (\%) & 15 ( 2.9) & 17 (13.0) & \textless0.001 & \\
+ADepreISRS = 1 (\%) & 40 ( 7.6) & 36 (27.5) & \textless0.001 & \\
+ADepreNoISRS = 1 (\%) & 48 ( 9.2) & 30 (22.9) & \textless0.001 & \\
+insulina = 1 (\%) & 20 ( 3.8) & 10 ( 7.6) & 0.102 & \\
+H\_SN = 1 (\%) & 30 ( 5.7) & 15 (11.5) & 0.034 & \\
+N\_SN = 1 (\%) & 223 (42.6) & 99 (75.6) & \textless0.001 & \\
+H01\_SN = 1 (\%) & 1 ( 0.2) & 0 ( 0.0) & 1.000 & \\
+H02\_SN = 1 (\%) & 7 ( 1.3) & 5 ( 3.8) & 0.126 & \\
+N06\_SN = 1 (\%) & 83 (15.8) & 55 (42.0) & \textless0.001 & \\
+N06A\_SN = 1 (\%) & 66 (12.6) & 50 (38.2) & \textless0.001 & \\
+N06AA\_SN = 1 (\%) & 9 ( 1.7) & 4 ( 3.1) & 0.528 & \\
+N06AB\_SN = 1 (\%) & 41 ( 7.8) & 36 (27.5) & \textless0.001 & \\
+N06AX\_SN = 1 (\%) & 21 ( 4.0) & 15 (11.5) & 0.002 & \\
+R03BA\_SN = 1 (\%) & 7 ( 1.3) & 2 ( 1.5) & 1.000 & \\
+\end{longtable}
+
+Els resultats de l'anàlisi descriptiva mostren diferències
+significatives entre casos i controls en diversos grups farmacològics.
+En particular, destaca una major prevalença d'ús d'antidepressius en el
+grup de casos, tant per als ISRS com per als no ISRS. Els ISRS presenten
+una prevalença del 27,5\% en casos enfront del 7,6\% en controls, i els
+antidepressius no ISRS del 22,9\% davant del 9,2\%, amb p-valors
+significatius en tots dos casos. Aquest mateix patró també s'observa en
+diverses categories del sistema nerviós, com N06, N06A i N06AB.
+
+També s'observen diferències significatives en altres grups terapèutics,
+com els bifosfonats o els antidiabètics orals, fet que suggereix una
+major càrrega terapèutica en el grup de casos.
+
+En aquest sentit, (\citeproc{ref-coupland2011antidepressant}{Coupland et
+al. 2011}) assenyalen que l'associació entre antidepressius i
+esdeveniments adversos pot estar parcialment explicada per les
+característiques dels pacients tractats. Aquest fet encaixa amb els
+nostres resultats, perquè a la taula veiem que els casos prenen més
+antidepressius que els controls, sobretot ISRS i antidepressius no ISRS,
+tal com hem esmentat.
+
+Per altra banda, veiem que els casos prenen més fàrmacs del sistema
+nerviós, sobretot antidepressius. Segons la
+(\citeproc{ref-brotomodulo}{Broto, Brumós, and Montañá, n.d.}), aquest
+tipus de pacients sovint presenten polimedicació, i això augmenta el
+risc d'efectes adversos i d'interaccions entre medicaments; és per això
+que cal interpretar-ho amb prudència.
+
+Per tant, serà necessari realitzar una anàlisi multivariant per
+determinar si aquestes associacions es mantenen després d'ajustar per
+possibles factors confusors.
+
+\clearpage
+
+\subsection{Anàlisi inferencial cru i
+ajustat}\label{anuxe0lisi-inferencial-cru-i-ajustat}
+
+A continuació, utilitzarem un model de Regressió Logística Condicional,
+fent servir la funció \texttt{clogit} del paquet \texttt{survival}.
+S'utilitza aquest tipus de model degut a que parlem d'un estudi
+Cas-Control, on les dades son pariades, en aquest cas, 1:4, és a dir,
+cada cas té 4 controls, aparellats en edat i sexe.
+
+I per tant, les observacions dins de cada conjunt de 4 són dependents,
+això fa que la regressió logística convencional no sigui adequada en
+aquest cas.
+
+\subsubsection{Anàlisi logística
+``crua''}\label{anuxe0lisi-loguxedstica-crua}
+
+La taula \ref{tab:logcru} presenta els resultats de la regressió
+logística crua, que permet veure l'associació directa entre l'exposició
+als diferents fàrmacs i el risc de fractura de maluc, sense ajustar per
+possibles factors de confusió.
+
+\begin{longtable}[]{@{}lcccl@{}}
+\caption{\label{tab:logcru}Anàlisi per regressió logística crua de les
+variables}\tabularnewline
+\toprule\noalign{}
+Variable & OR\_Cru & IC\_Inferior & IC\_Superior & P\_valor \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Variable & OR\_Cru & IC\_Inferior & IC\_Superior & P\_valor \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+CortInh & 2.40 & 1.27 & 4.55 & 0.007 \\
+CortSist & 3.33 & 1.02 & 10.92 & 0.047 \\
+CortSistIniBf3m & 2.00 & 0.50 & 8.00 & 0.327 \\
+CortSistExpLt3m & 2.00 & 0.50 & 8.00 & 0.327 \\
+CortInhIniBf3m & 2.00 & 0.94 & 4.27 & 0.074 \\
+CortInhExpLt3m & 2.00 & 0.94 & 4.27 & 0.074 \\
+ADO\_no\_glitazona & 2.56 & 1.50 & 4.37 & 0.001 \\
+Bisf & 4.94 & 2.39 & 10.21 & 0.000 \\
+ADepreISRS & 5.15 & 2.97 & 8.93 & 0.000 \\
+ADepreNoISRS & 3.13 & 1.85 & 5.30 & 0.000 \\
+insulina & 2.08 & 0.95 & 4.56 & 0.066 \\
+H\_SN & 2.11 & 1.10 & 4.03 & 0.024 \\
+N\_SN & 4.32 & 2.77 & 6.74 & 0.000 \\
+H01\_SN & 0.00 & 0.00 & Inf & 0.997 \\
+H02\_SN & 2.86 & 0.91 & 9.00 & 0.073 \\
+N06\_SN & 4.16 & 2.65 & 6.52 & 0.000 \\
+N06A\_SN & 4.58 & 2.87 & 7.31 & 0.000 \\
+N06AA\_SN & 1.83 & 0.54 & 6.14 & 0.329 \\
+N06AB\_SN & 4.93 & 2.87 & 8.49 & 0.000 \\
+N06AX\_SN & 2.98 & 1.51 & 5.90 & 0.002 \\
+R03BA\_SN & 1.14 & 0.24 & 5.50 & 0.868 \\
+\end{longtable}
+
+Els resultats mostren una associació positiva i estadísticament
+significativa entre diversos fàrmacs i el risc de fractura de maluc. A
+diferència d'altres dissenys amb controls hospitalaris, l'ús de controls
+de població general podria contribuir a una major diferència en el
+perfil d'exposició entre casos i controls.
+
+Els resultats més destacats es troben en els \textbf{antidepressius}
+(\texttt{N06\_SN}), amb una OR crua de 4.16 (IC: 2.65, 6.52). Dins
+d'aquest grup, els ISRS (\texttt{N06AB\_SN}) presenten el risc més
+eleva, amb una OR de 4.93, en línia amb el que descriu l'article de
+referència (\citeproc{ref-gorgas2021}{Gorgas et al. 2021}), que
+siggereix tant un augmet del risc de caigudes com possibles efectes
+sobre el metabolisme ossi.
+
+També s'observen riscos molt elevats en els \textbf{bisfosfonats}
+(OR=4.94). Aquestes associacions s'han d'interpretar amb precaució, ja
+que poden reflectir confusió per indicació: els pacients exposats són
+probablement més fràgils o amb més patologies de base (com osteoporosi o
+diabetis) que els controls. Aquesta gran diferència basal explica per
+què les OR crues són tan elevades en comparació amb estudis on els
+controls també estan malalts.
+
+D'altra banda, algunes variables no mostren associacions estadísticament
+significatives, com la insulina (p=0.066) o determinats subgrups
+terapèutics. Finalment, la presència d'intervals de confiança molt
+amplis o valors extrems, com en H01\_SN, indica possibles problemes de
+baixa freqüència o separació quasi perfecta, fet que limita la
+fiabilitat d'aquestes estimacions.
+
+\subsubsection{Anàlisi logística
+ajustada}\label{anuxe0lisi-loguxedstica-ajustada}
+
+L'anàlisi crua detecta un increment de risc generalitzat, però la
+magnitud d'aquestes OR suggereix la presència d'un fort biaix de
+confusió per indicació. Per tant, l'anàlisi ajustada que es veu a
+continuació, és imprescindible per intentar aïllar l'efecte real dels
+antidepressius de la fragilitat general del pacient.
+
+Per tal de fer el millor ajust possible, observem la taula
+\ref{tab:tab1} per observar possibles variables confusores, i tenim que
+aquestes són:
+
+\begin{itemize}
+\item
+  \textbf{Variables confusores retingudes}
+\item
+  \texttt{Smoker} i \texttt{Alcohol}: S'ha decidit incloure aquestes
+  variables en l'anàlisi ajustat ja que són factors d'estil de vida que
+  afecten directament la salut òssia i poden actuar com a variables de
+  confusió en l'associació amb els medicaments
+  (\citeproc{ref-leal2022description}{\textbf{leal2022description?}})
+  (\citeproc{ref-botaya2018osteoporosis}{\textbf{botaya2018osteoporosis?}}).
+  A la descripció basal (\ref{tab:tab1}), s'observen diferències
+  estadísticament significatives en el consum de tabac (p=0.001), amb
+  una major proporció de fumadors actius i ex-fumadorsa l grup dels
+  casos. Pel que fa a l'alcohol (p=0,058), tot i trobar-se en el límit
+  de la significació, s'ha optat per mantenir-la al model ajustat per la
+  seva rellevància clínica i bibliogràfica en el risc de fractures i
+  caigudes, a més, aquesta diferéncia es troba als controls en l'àmbit
+  de poc consum.
+\item
+  \texttt{Diabetis}, \texttt{CountActualGE4}: De manera similar, es va
+  avaluar l'impacte de prendre 4 o més fàrmacs de risc (CountActualGE4),
+  ja que pot actuar com a indicador de polimedicació i de major càrrega
+  de comorbiditat
+  (\citeproc{ref-bonaga2016polifarmacia}{\textbf{bonaga2016polifarmacia?}}).
+  En la descripció basal (\ref{tab:tab1}), aquesta variable mostra
+  diferències estadísticament significatives entre casos i controls(
+  p\textless0.001), amb una major proporció de pacients polimedicats en
+  el grup de casos (75.6\% vs 42.4\%).
+\end{itemize}
+
+Pel que fa a la diabetis, també s'observen diferències significatives
+(p=0.007), amb una major prevalença en els casos. Donada la seva relació
+amb complicacions metabòliques i possibles efectes sobre el risc de
+fractura, així com l'ús de tractaments com la insulina i altres
+antidiabètics
+(\citeproc{ref-sedlinskydiabetes}{\textbf{sedlinskydiabetes?}}), es
+considera una variable rellevant a incloure com a covariable en el model
+ajustat.
+
+\begin{itemize}
+\item
+  \texttt{Osteoporosi} i \texttt{Fractura}: Compleixen un doble criteri.
+  D'una banda, presenten una forta evidència clínica com a factors de
+  risc directes per a futures fractures. L'osteporosi és una malaltia
+  que debilita els ossos i augmenta el risc de fractures i, Fractura
+  indica si han hagut fractures prèvies
+  (\citeproc{ref-campos2019osteoporosis}{\textbf{campos2019osteoporosis?}}).
+  D'altra banda, l'anàlisi de comparació de grups confirma una
+  diferència estadísticament significativa en la nostra mostra d'estudi.
+\item
+  \textbf{Variables avaluades i excloses}:
+\item
+  \texttt{Talla}, \texttt{HiperTiroidisme} i \texttt{Malnutricio}: La
+  variable talla, ha estat exclosa degut a la presència de NA's a la
+  base de dades, cosa que fa que els resultats s'esbiaixin. Per la part
+  de l' HiperTiroidisme i la Malnutricio, tot i que hii ha diferencies
+  significatives, s'ha optat per no incloure-les ja que aquestes tenen
+  una baixa freqüència d'aquestes als casos i controls, la introducció
+  d'aquestes variables podria generar problemes d'inestabilitat
+  numèrica, a més, s'ha considerat que el seu potencial com a confusor,
+  pot estar bastant limitat.
+\end{itemize}
+
+Per tant, un cop s'han triat els confusors, fem el model:
+
+\begin{longtable}[]{@{}lcccc@{}}
+\caption{\label{tab:logajust}Anàlisi per regressió logística ajustada
+per covariables}\tabularnewline
+\toprule\noalign{}
+Variable & OR\_Ajustat & IC\_Inferior & IC\_Superior & P\_valor \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Variable & OR\_Ajustat & IC\_Inferior & IC\_Superior & P\_valor \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+CortInh & 1.78 & 0.69 & 4.61 & 0.233 \\
+CortSist & 3.94 & 0.83 & 18.74 & 0.085 \\
+CortSistIniBf3m & 3.09 & 0.58 & 16.50 & 0.188 \\
+CortSistExpLt3m & 3.09 & 0.58 & 16.50 & 0.188 \\
+CortInhIniBf3m & 1.60 & 0.55 & 4.66 & 0.393 \\
+CortInhExpLt3m & 1.60 & 0.55 & 4.66 & 0.393 \\
+ADO\_no\_glitazona & 1.40 & 0.53 & 3.72 & 0.495 \\
+Bisf & 1.64 & 0.42 & 6.41 & 0.477 \\
+ADepreISRS & 3.72 & 1.62 & 8.54 & 0.002 \\
+ADepreNoISRS & 1.62 & 0.72 & 3.67 & 0.245 \\
+insulina & 1.29 & 0.40 & 4.11 & 0.668 \\
+H\_SN & 1.21 & 0.48 & 3.07 & 0.681 \\
+N\_SN & 2.86 & 1.31 & 6.25 & 0.008 \\
+H01\_SN & 0.00 & 0.00 & Inf & 0.997 \\
+H02\_SN & 3.00 & 0.70 & 12.81 & 0.138 \\
+N06\_SN & 2.34 & 1.17 & 4.70 & 0.017 \\
+N06A\_SN & 2.36 & 1.16 & 4.81 & 0.018 \\
+N06AA\_SN & 0.92 & 0.12 & 6.99 & 0.935 \\
+N06AB\_SN & 3.47 & 1.53 & 7.84 & 0.003 \\
+N06AX\_SN & 0.79 & 0.24 & 2.59 & 0.696 \\
+R03BA\_SN & 1.69 & 0.25 & 11.32 & 0.590 \\
+\end{longtable}
+
+Els resultats de la regressió logística ajustada mostren una reducció
+general de les odds ratio respecte a l'anàlisi crua, fet que suggereix
+la presència de confusió per indicació en molts dels fàrmacs analitzats.
+Després d'ajustar per covariables com diabetis, alcohol, tabaquisme i
+osteoporosi, la majoria d'associacions perden significació estadística.
+
+Els resultats més destacats es mantenen en els antidepressius,
+especialment dins del grup N06, amb una OR ajustada de 2.34 (IC: 1.17,
+4.70). Dins d'aquest grup, els ISRS (N06AB) continuen presentant una
+associació significativa (OR=3.47; IC: 1.53, 7.84), fet que reforça la
+hipòtesi d'un possible efecte propi d'aquests fàrmacs més enllà del
+perfil basal dels pacients.
+
+En canvi, altres fàrmacs que mostraven associacions elevades en
+l'anàlisi crua, com els bisfosfonats o la insulina, deixen de ser
+estadísticament significatius després de l'ajust. Això suggereix que les
+associacions observades inicialment podrien estar influïdes per la
+presència de factors de confusió.
+
+\subsection{Comparació amb l'article}\label{comparaciuxf3-amb-larticle}
+
+Els resultats obtinguts en aquest estudi són, en general, similars amb
+els descrits a l'article de referència (\citeproc{ref-gorgas2021}{Gorgas
+et al. 2021}), tant en l'anàlisi crua com en l'ajustada.
+
+Pel que fa a l'anàlisi crua, les magnituds de les odds ratio són molt
+similars entre ambdós estudis. En particular, els antidepressius,
+especialment els ISRS (N06AB), mostren una OR elevada tant en el nostre
+estudi (OR =4.93) com en l'article (OR=4.89), indicant una forta
+associació entre exposició i risc de fractura abans d'ajustar per
+factors de confusió.
+
+En l'anàlisi ajustada, es manté aquesta coherència. Els ISRS continuen
+mostrant una associació positiva i estadísticament significativa en
+ambdós estudis, amb una OR de 3.47 en els nostres resultats i de 3.52 en
+l'article.
+
+Altres antidepressius no ISRS perden significació estadística després de
+l'ajust en ambdós estudis, suggerint que l'associació observada en
+l'anàlisi crua està influïda per factors de confusió.
+
+Les petites diferències observades entre els resultats poden deure's a
+variacions en les covariables incloses en el model, cosa que podria
+explicar les discrepàncies observades entre ambdós estudis.
+
+\clearpage
+
+\section{Estadístics descriptius, mesures de risc,
+inferencies\ldots{}}\label{estaduxedstics-descriptius-mesures-de-risc-inferencies}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1635}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1538}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2692}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2885}}@{}}
+\caption{Exposició a fàrmacs i riscos associats}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Exposure
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Controls n (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Casos n (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR crua (IC95\%); p valor
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR ajustada (IC95\%); p valor
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Exposure
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Controls n (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Casos n (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR crua (IC95\%); p valor
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR ajustada (IC95\%); p valor
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+CortInh & 25 ( 4.8) & 15 (11.5) & 2.4 (1.27,4.55); p=0.007 & 1.78
+(0.69,4.61); p=0.233 \\
+CortSist & 6 ( 1.1) & 5 ( 3.8) & 3.33 (1.02,10.92); p=0.047 & 3.94
+(0.83,18.74); p=0.085 \\
+CortSistIniBf3m & 6 ( 1.1) & 3 ( 2.3) & 2 (0.5,8.00); p=0.327 & 3.09
+(0.58,16.50); p=0.188 \\
+CortSistExpLt3m & 6 ( 1.1) & 3 ( 2.3) & 2 (0.5,8.00); p=0.327 & 3.09
+(0.58,16.50); p=0.188 \\
+CortInhIniBf3m & 20 ( 3.8) & 10 ( 7.6) & 2 (0.94,4.27); p=0.074 & 1.6
+(0.55,4.66); p=0.393 \\
+CortInhExpLt3m & 20 ( 3.8) & 10 ( 7.6) & 2 (0.94,4.27); p=0.074 & 1.6
+(0.55,4.66); p=0.393 \\
+ADO\_no\_glitazona & 47 ( 9.0) & 26 (19.8) & 2.56 (1.5,4.37); p=0.001 &
+1.4 (0.53,3.72); p=0.495 \\
+Bisf & 15 ( 2.9) & 17 (13.0) & 4.94 (2.39,10.21); p=0 & 1.64
+(0.42,6.41); p=0.477 \\
+ADepreISRS & 40 ( 7.6) & 36 (27.5) & 5.15 (2.97,8.93); p=0 & 3.72
+(1.62,8.54); p=0.002 \\
+ADepreNoISRS & 48 ( 9.2) & 30 (22.9) & 3.13 (1.85,5.30); p=0 & 1.62
+(0.72,3.67); p=0.245 \\
+insulina & 20 ( 3.8) & 10 ( 7.6) & 2.08 (0.95,4.56); p=0.066 & 1.29
+(0.4,4.11); p=0.668 \\
+H\_SN & 30 ( 5.7) & 15 (11.5) & 2.11 (1.1,4.03); p=0.024 & 1.21
+(0.48,3.07); p=0.681 \\
+N\_SN & 223 (42.6) & 99 (75.6) & 4.32 (2.77,6.74); p=0 & 2.86
+(1.31,6.25); p=0.008 \\
+H01\_SN & 1 ( 0.2) & 0 ( 0.0) & 0 (0,Inf); p=0.997 & 0 (0,Inf);
+p=0.997 \\
+H02\_SN & 7 ( 1.3) & 5 ( 3.8) & 2.86 (0.91,9.00); p=0.073 & 3
+(0.7,12.81); p=0.138 \\
+N06\_SN & 83 (15.8) & 55 (42.0) & 4.16 (2.65,6.52); p=0 & 2.34
+(1.17,4.70); p=0.017 \\
+N06A\_SN & 66 (12.6) & 50 (38.2) & 4.58 (2.87,7.31); p=0 & 2.36
+(1.16,4.81); p=0.018 \\
+N06AA\_SN & 9 ( 1.7) & 4 ( 3.1) & 1.83 (0.54,6.14); p=0.329 & 0.92
+(0.12,6.99); p=0.935 \\
+N06AB\_SN & 41 ( 7.8) & 36 (27.5) & 4.93 (2.87,8.49); p=0 & 3.47
+(1.53,7.84); p=0.003 \\
+N06AX\_SN & 21 ( 4.0) & 15 (11.5) & 2.98 (1.51,5.90); p=0.002 & 0.79
+(0.24,2.59); p=0.696 \\
+R03BA\_SN & 7 ( 1.3) & 2 ( 1.5) & 1.14 (0.24,5.50); p=0.868 & 1.69
+(0.25,11.32); p=0.59 \\
+\end{longtable}
+
+\section{Factors de confusió}\label{factors-de-confusiuxf3}
+
+Els factors de confusió són variables que fan que una relació aparent
+entre un fàrmac i el risc de fractura pugui estar influïda, en realitat,
+per característiques dels pacients i no únicament per l'efecte del
+tractament.
+
+En aquest estudi, la Taula 1 i la Taula 2 ja mostren diferències entre
+casos i controls en diverses variables clíniques i d'estil de vida.
+També s'observa que diversos medicaments són més freqüents en el grup de
+casos, especialment antidepressius, bisfosfonats i antidiabètics. Tot i
+això, aquestes diferències descriptives no permeten concloure una
+relació causal directa.
+
+La comparació entre la Taula 3 (anàlisi crua) i la Taula 4 (anàlisi
+ajustada) permet valorar millor la presència de confusió. Quan una odds
+ratio disminueix de manera notable després de l'ajust o deixa de ser
+significativa, això suggereix que part de l'associació inicial estava
+influïda per factors de confusió.
+
+En aquest cas, els bisfosfonats passen d'una OR crua elevada a una OR
+ajustada molt menor i no significativa. Aquest patró és coherent amb
+confusió per indicació, ja que els pacients que reben aquest tractament
+presenten amb més freqüència osteoporosi o major risc ossi previ. Un
+comportament similar s'observa en la insulina i altres tractaments
+metabòlics, on la càrrega de comorbiditat podria explicar part de
+l'excés de risc observat en l'anàlisi no ajustada.
+
+Cal destacar també que la pèrdua de significació després de l'ajust no
+vol dir necessàriament que no hi hagi efecte, sinó que l'efecte estimat
+pot ser més petit, menys precís o ambdues coses alhora. Que els
+intervals de confiança siguin més amplis després d'afegir covariables és
+habitual en models amb diverses variables, especialment quan la mostra
+no és molt gran.
+
+Finalment, no es pot descartar la presència de confusió residual per
+factors que no estan disponibles a la base de dades, com antecedents de
+caigudes, estat funcional, gravetat clínica, dosi acumulada o adherència
+al tractament. Per això, els resultats s'han d'interpretar com
+associacions ajustades i no com una prova causal definitiva. Tot i així,
+l'ús de regressió logística condicional en un disseny aparellat continua
+sent una opció adequada per obtenir resultats més fiables en aquest
+context.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1809}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.0851}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1277}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2021}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1277}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.2766}}@{}}
+\caption{Avaluació de factors de confusió mitjançant el canvi relatiu de
+l'OR}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Variable
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR Cru
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR Ajustat
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Canvi relatiu (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Confusora?
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Direcció
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Variable
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR Cru
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+OR Ajustat
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Canvi relatiu (\%)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Confusora?
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Direcció
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+CortInh & 2.40 & 1.80 & 33.3 & Sí (+10\%) & Positiva (sobreestimació) \\
+CortSist & 3.33 & 3.93 & -15.3 & Sí (+10\%) & Negativa (subestimació) \\
+CortSistIniBf3m & 2.00 & 3.05 & -34.4 & Sí (+10\%) & Negativa
+(subestimació) \\
+CortSistExpLt3m & 2.00 & 3.05 & -34.4 & Sí (+10\%) & Negativa
+(subestimació) \\
+CortInhIniBf3m & 2.00 & 1.61 & 24.2 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+CortInhExpLt3m & 2.00 & 1.61 & 24.2 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+ADO\_no\_glitazona & 2.56 & 1.40 & 82.9 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+Bisf & 4.94 & 1.13 & 337.2 & Sí (+10\%) & Positiva (sobreestimació) \\
+ADepreISRS & 5.15 & 2.83 & 82.0 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+ADepreNoISRS & 3.13 & 1.46 & 114.4 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+insulina & 2.08 & 1.18 & 76.3 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+H\_SN & 2.11 & 1.52 & 38.8 & Sí (+10\%) & Positiva (sobreestimació) \\
+N\_SN & 4.32 & 2.34 & 84.6 & Sí (+10\%) & Positiva (sobreestimació) \\
+H02\_SN & 2.86 & 3.35 & -14.6 & Sí (+10\%) & Negativa (subestimació) \\
+N06\_SN & 4.16 & 1.95 & 113.3 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+N06A\_SN & 4.58 & 2.09 & 119.1 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+N06AA\_SN & 1.83 & 0.84 & 117.9 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+N06AB\_SN & 4.93 & 2.76 & 78.6 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+N06AX\_SN & 2.98 & 0.96 & 210.4 & Sí (+10\%) & Positiva
+(sobreestimació) \\
+R03BA\_SN & 1.14 & 1.74 & -34.5 & Sí (+10\%) & Negativa
+(subestimació) \\
+\end{longtable}
+
+\section{Discussió}\label{discussiuxf3}
+
+\section{Avaluació de l'article original des del punt de vista
+estadístic i
+metodològic}\label{avaluaciuxf3-de-larticle-original-des-del-punt-de-vista-estaduxedstic-i-metodoluxf2gic}
+
+\clearpage
+\appendix
+
+\section{Annex}\label{annex}
+
+\subsection{Creuar data}\label{creuar-data}
+
+\label{anx:carrega}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(haven)}
+\FunctionTok{library}\NormalTok{(dplyr)}
+
+\NormalTok{uab\_demo3 }\OtherTok{\textless{}{-}} \FunctionTok{read\_sas}\NormalTok{(}\StringTok{"uab\_demo3.sas7bdat"}\NormalTok{, }\ConstantTok{NULL}\NormalTok{)}
+\NormalTok{uab\_drugs3 }\OtherTok{\textless{}{-}} \FunctionTok{read\_sas}\NormalTok{(}\StringTok{"uab\_drugs3.sas7bdat"}\NormalTok{, }\ConstantTok{NULL}\NormalTok{)}
+\NormalTok{uab\_atcdrugs3 }\OtherTok{\textless{}{-}} \FunctionTok{read\_sas}\NormalTok{(}\StringTok{"uab\_atc\_drugs3.sas7bdat"}\NormalTok{, }\ConstantTok{NULL}\NormalTok{)}
+
+\NormalTok{data1 }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(uab\_demo3, uab\_drugs3, }\AttributeTok{by.x=}\StringTok{"PatNo"}\NormalTok{, }\AttributeTok{by.y=}\StringTok{"PatNo"}\NormalTok{)}
+\NormalTok{data }\OtherTok{\textless{}{-}} \FunctionTok{merge}\NormalTok{(data1, uab\_atcdrugs3, }\AttributeTok{by.x=}\StringTok{"PatNo"}\NormalTok{, }\AttributeTok{by.y=}\StringTok{"PatNo"}\NormalTok{)}
+
+\NormalTok{data }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\FunctionTok{where}\NormalTok{(}\SpecialCharTok{\textasciitilde{}} \FunctionTok{all}\NormalTok{(}\FunctionTok{unique}\NormalTok{(.x) }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{3}\NormalTok{, }\ConstantTok{NA}\NormalTok{,}\StringTok{"M"}\NormalTok{,}\StringTok{"F"}\NormalTok{))), as.factor))}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{NFractura}\OtherTok{=}\FunctionTok{as.factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{NFractura)}
+\FunctionTok{levels}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{NFractura)[}\FunctionTok{levels}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{NFractura) }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"2"}\NormalTok{, }\StringTok{"3"}\NormalTok{, }\StringTok{"4"}\NormalTok{, }\StringTok{"5"}\NormalTok{, }\StringTok{"6"}\NormalTok{, }\StringTok{"7"}\NormalTok{)]}\OtherTok{=}\StringTok{"\textgreater{}=2"}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{ServeiAlta}\OtherTok{=}\FunctionTok{as.factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{ServeiAlta)}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{Edat}\OtherTok{=}\FunctionTok{cut}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{Edat,}\AttributeTok{breaks=}\FunctionTok{c}\NormalTok{(}\DecValTok{50}\NormalTok{, }\DecValTok{65}\NormalTok{, }\DecValTok{81}\NormalTok{, }\DecValTok{95}\NormalTok{),}\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"51{-}65"}\NormalTok{,}\StringTok{"66{-}81"}\NormalTok{,}\StringTok{"82{-}95"}\NormalTok{),}\AttributeTok{include.lowest =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{data}\OtherTok{=}\FunctionTok{subset}\NormalTok{(data, }\AttributeTok{select=}\SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(Hipogonad, FX\_familia))}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{Smoker}\OtherTok{=}\FunctionTok{factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{Smoker,}\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{),}\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"No Fumador"}\NormalTok{, }\StringTok{"Fumador Actiu"}\NormalTok{, }\StringTok{"Ex{-}Fumador"}\NormalTok{))}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{ALCOHOL}\OtherTok{=}\FunctionTok{factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{ALCOHOL,}\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{),}\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"No consumeix"}\NormalTok{, }\StringTok{"Poc consum"}\NormalTok{,}\StringTok{"Consum moderat"}\NormalTok{))}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{tipus\_diabetis}\OtherTok{=}\FunctionTok{factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{tipus\_diabetis,}\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{),}\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"No diabetis"}\NormalTok{,}\StringTok{"Tipus 1"}\NormalTok{,}\StringTok{"Tipus 2"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Taula característiques}\label{taula-caracteruxedstiques}
+
+\label{anx:caract}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dplyr)}
+\FunctionTok{library}\NormalTok{(tableone)}
+
+\NormalTok{variables\_demo }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Sexe"}\NormalTok{, }\StringTok{"Edat"}\NormalTok{ ,}\StringTok{"PES"}\NormalTok{, }\StringTok{"TALLA"}\NormalTok{, }\StringTok{"IMC"}\NormalTok{,}
+                  \StringTok{"Smoker"}\NormalTok{,}\StringTok{"ALCOHOL"}\NormalTok{, }\StringTok{"Artritis\_reumatoide"}\NormalTok{,}
+                  \StringTok{"Fractura"}\NormalTok{,}\StringTok{"NFractura"}\NormalTok{,}\StringTok{"Diabetis"}\NormalTok{,}\StringTok{"tipus\_diabetis"}\NormalTok{,}\StringTok{"Osteporosi"}\NormalTok{, }
+                  \StringTok{"Densitometries"}\NormalTok{,}\StringTok{"neoplasia"}\NormalTok{,}\StringTok{"HiperTiroidisme"}\NormalTok{,}\StringTok{"Malnutricio"}\NormalTok{,}
+                  \StringTok{"Malabsorcio"}\NormalTok{,}\StringTok{"Malaltia\_Hep\_Cro"}\NormalTok{,}\StringTok{"OthRiskFract"}\NormalTok{, }\StringTok{"CountActualGE4"}\NormalTok{)}
+
+\NormalTok{cat\_vars }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Sexe"}\NormalTok{, }\StringTok{"Smoker"}\NormalTok{, }\StringTok{"ALCOHOL"}\NormalTok{, }\StringTok{"Artritis\_reumatoide"}\NormalTok{,}\StringTok{"Edat"}\NormalTok{, }
+              \StringTok{"Fractura"}\NormalTok{, }\StringTok{"Diabetis"}\NormalTok{, }\StringTok{"tipus\_diabetis"}\NormalTok{, }\StringTok{"Osteporosi"}\NormalTok{, }\StringTok{"Densitometries"}\NormalTok{,}
+              \StringTok{"neoplasia"}\NormalTok{, }\StringTok{"HiperTiroidisme"}\NormalTok{, }\StringTok{"Malnutricio"}\NormalTok{, }\StringTok{"Malabsorcio"}\NormalTok{, }
+              \StringTok{"Malaltia\_Hep\_Cro"}\NormalTok{,}\StringTok{"OthRiskFract"}\NormalTok{, }\StringTok{"CountActualGE4"}\NormalTok{)}
+
+\NormalTok{taula\_demo }\OtherTok{\textless{}{-}} \FunctionTok{CreateTableOne}\NormalTok{(}
+  \AttributeTok{vars =}\NormalTok{ variables\_demo,}
+  \AttributeTok{strata =} \StringTok{"ControlCas.x"}\NormalTok{,}
+  \AttributeTok{data =}\NormalTok{ data,}
+  \AttributeTok{factorVars =}\NormalTok{ cat\_vars,}
+  \AttributeTok{includeNA =} \ConstantTok{FALSE}
+\NormalTok{)}
+
+\NormalTok{tbl}\OtherTok{\textless{}{-}} \FunctionTok{print}\NormalTok{(taula\_demo)}
+\FunctionTok{colnames}\NormalTok{(tbl)}\OtherTok{=}\FunctionTok{c}\NormalTok{(}\StringTok{"Control"}\NormalTok{,}\StringTok{"Cas"}\NormalTok{,}\StringTok{"P\_valor"}\NormalTok{,}\StringTok{" "}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Anàlisi d'exposició als fàrmacs i els riscs associats de
+fractura}\label{anuxe0lisi-dexposiciuxf3-als-fuxe0rmacs-i-els-riscs-associats-de-fractura}
+
+\subsubsection{Anàlisi descriptiva}\label{anuxe0lisi-descriptiva}
+
+\label{anx:descrip}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{variables\_farmacs }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"CortInh"}\NormalTok{,}
+\StringTok{"CortSist"}\NormalTok{,}\StringTok{"CortSistIniBf3m"}\NormalTok{,}\StringTok{"CortSistExpLt3m"}\NormalTok{,}\StringTok{"CortInhIniBf3m"}\NormalTok{,}
+\StringTok{"CortInhExpLt3m"}\NormalTok{,}\StringTok{"ADO\_no\_glitazona"}\NormalTok{,}\StringTok{"Bisf"}\NormalTok{,}\StringTok{"ADepreISRS"}\NormalTok{,}
+\StringTok{"ADepreNoISRS"}\NormalTok{,}\StringTok{"insulina"}\NormalTok{,}\StringTok{"H\_SN"}\NormalTok{,}\StringTok{"N\_SN"}\NormalTok{,}\StringTok{"H01\_SN"}\NormalTok{,}\StringTok{"H02\_SN"}\NormalTok{,}
+\StringTok{"N06\_SN"}\NormalTok{,}\StringTok{"N06A\_SN"}\NormalTok{,}\StringTok{"N06AA\_SN"}\NormalTok{,}\StringTok{"N06AB\_SN"}\NormalTok{,}\StringTok{"N06AX\_SN"}\NormalTok{,}\StringTok{"R03BA\_SN"}\NormalTok{)}
+
+\NormalTok{variables\_cat }\OtherTok{\textless{}{-}}\NormalTok{ variables\_farmacs[}\SpecialCharTok{!}\FunctionTok{grepl}\NormalTok{(}\StringTok{"Dias"}\NormalTok{, variables\_farmacs)]}
+
+\NormalTok{taula\_des }\OtherTok{\textless{}{-}} \FunctionTok{CreateTableOne}\NormalTok{(}
+  \AttributeTok{vars =}\NormalTok{ variables\_farmacs,}
+  \AttributeTok{factorVars =}\NormalTok{ variables\_cat,}
+  \AttributeTok{strata =} \StringTok{"ControlCas.x"}\NormalTok{,}
+  \AttributeTok{data =}\NormalTok{ data}
+\NormalTok{)}
+
+\NormalTok{tbl}\OtherTok{=}\FunctionTok{print}\NormalTok{(taula\_des)}
+\FunctionTok{colnames}\NormalTok{(tbl)}\OtherTok{=}\FunctionTok{c}\NormalTok{(}\StringTok{"Control"}\NormalTok{,}\StringTok{"Cas"}\NormalTok{,}\StringTok{"P\_valor"}\NormalTok{,}\StringTok{" "}\NormalTok{)}
+\FunctionTok{class}\NormalTok{(tbl)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(knitr)}
+\FunctionTok{kable}\NormalTok{(tbl,}\AttributeTok{caption =} \StringTok{"}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{label\{tab:descrip\}Comparació de Medicaments i teràpies"}\NormalTok{,}\AttributeTok{align =} \StringTok{"lccc"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Anàlisi logística
+``crua''}\label{anuxe0lisi-loguxedstica-crua-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(survival)}
+
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{cas }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{as.character}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{ControlCas.x))}
+\NormalTok{data}\SpecialCharTok{$}\NormalTok{strata\_id }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{MatchCC.x)}
+
+\NormalTok{variables\_a\_excloure }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"PatNo"}\NormalTok{, }\StringTok{"ServeiAlta"}\NormalTok{, }\StringTok{"Sexe"}\NormalTok{, }\StringTok{"Edat"}\NormalTok{, }\StringTok{"MatchCC"}\NormalTok{, }\StringTok{"MatchCC.x"}\NormalTok{, }\StringTok{"MatchCC.y"}\NormalTok{, }\StringTok{"PES"}\NormalTok{, }\StringTok{"TALLA"}\NormalTok{, }\StringTok{"IMC"}\NormalTok{,}
+                  \StringTok{"Smoker"}\NormalTok{,}\StringTok{"ALCOHOL"}\NormalTok{, }\StringTok{"Artritis\_reumatoide"}\NormalTok{,}
+                  \StringTok{"Fractura"}\NormalTok{,}\StringTok{"NFractura"}\NormalTok{,}\StringTok{"Diabetis"}\NormalTok{,}\StringTok{"tipus\_diabetis"}\NormalTok{,}\StringTok{"Osteporosi"}\NormalTok{, }
+                  \StringTok{"Densitometries"}\NormalTok{,}\StringTok{"neoplasia"}\NormalTok{,}\StringTok{"HiperTiroidisme"}\NormalTok{,}\StringTok{"Malnutricio"}\NormalTok{,}
+                  \StringTok{"Malabsorcio"}\NormalTok{,}\StringTok{"Malaltia\_Hep\_Cro"}\NormalTok{,}\StringTok{"OthRiskFract"}\NormalTok{, }\StringTok{"CountActualGE4"}\NormalTok{, }
+  \StringTok{"ControlCas.x"}\NormalTok{, }\StringTok{"ControlCas.y"}\NormalTok{, }\StringTok{"ControlCas"}\NormalTok{, }\StringTok{"cas"}\NormalTok{, }\StringTok{"strata\_id"}\NormalTok{)}
+
+\NormalTok{totes\_les\_columnes }\OtherTok{\textless{}{-}} \FunctionTok{names}\NormalTok{(data)}
+
+\NormalTok{variables\_analisi }\OtherTok{\textless{}{-}} \FunctionTok{setdiff}\NormalTok{(totes\_les\_columnes, variables\_a\_excloure)}
+
+\NormalTok{resultats\_2b }\OtherTok{\textless{}{-}} \FunctionTok{lapply}\NormalTok{(variables\_analisi, }\ControlFlowTok{function}\NormalTok{(variable) \{}
+
+\NormalTok{    formula\_model }\OtherTok{\textless{}{-}} \FunctionTok{as.formula}\NormalTok{(}
+    \FunctionTok{paste}\NormalTok{(}\StringTok{"cas \textasciitilde{}"}\NormalTok{, variable, }\StringTok{"+ strata(strata\_id)"}\NormalTok{)}
+\NormalTok{  )}
+  
+\NormalTok{  model }\OtherTok{\textless{}{-}} \FunctionTok{clogit}\NormalTok{(formula\_model, }\AttributeTok{data =}\NormalTok{ data)}
+\NormalTok{  resum }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{coefficients}
+    
+\NormalTok{    coeficients }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{coefficients}
+
+\NormalTok{    estimacio }\OtherTok{\textless{}{-}}\NormalTok{ estimacio }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{1}\NormalTok{]}
+\NormalTok{    p\_valor }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{5}\NormalTok{]}
+    
+\NormalTok{    OR }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{2}\NormalTok{]}
+\NormalTok{    IC\_inf }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(estimacio}\FloatTok{{-}1.96}\SpecialCharTok{*}\NormalTok{coeficients[}\DecValTok{3}\NormalTok{])}
+\NormalTok{    IC\_sup }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(estimacio}\FloatTok{+1.96}\SpecialCharTok{*}\NormalTok{coeficients[}\DecValTok{3}\NormalTok{])}
+    
+    \FunctionTok{return}\NormalTok{(}\FunctionTok{data.frame}\NormalTok{(}
+      \AttributeTok{Variable=}\NormalTok{variable,}
+      \AttributeTok{OR\_Cru =} \FunctionTok{round}\NormalTok{(OR, }\DecValTok{2}\NormalTok{),}
+      \AttributeTok{IC\_Inferior =} \FunctionTok{round}\NormalTok{(IC\_inf, }\DecValTok{2}\NormalTok{),}
+      \AttributeTok{IC\_Superior =} \FunctionTok{format}\NormalTok{(}\FunctionTok{round}\NormalTok{(IC\_sup, }\DecValTok{2}\NormalTok{),}\AttributeTok{nsmall=}\DecValTok{2}\NormalTok{),}
+      \AttributeTok{P\_valor =} \FunctionTok{round}\NormalTok{(p\_valor, }\DecValTok{3}\NormalTok{)}
+\NormalTok{    ))}
+\NormalTok{    \})}
+
+\NormalTok{taula\_final\_2b }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(rbind, resultats\_2b)}
+\FunctionTok{rownames}\NormalTok{(taula\_final\_2b) }\OtherTok{\textless{}{-}} \ConstantTok{NULL}
+
+\NormalTok{tab }\OtherTok{\textless{}{-}} \FunctionTok{print}\NormalTok{(taula\_final\_2b)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(tab, }\AttributeTok{caption=}\StringTok{"}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{label\{tab:logcru\}Anàlisi per regressió logística crua de les variables"}\NormalTok{,}\AttributeTok{align =} \StringTok{"lccc"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Anàlisi logística
+ajustada}\label{anuxe0lisi-loguxedstica-ajustada-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{covariables }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Osteporosi"}\NormalTok{,}\StringTok{"Fractura"}\NormalTok{,}\StringTok{"ALCOHOL"}\NormalTok{,}\StringTok{"Smoker"}\NormalTok{,}\StringTok{"Diabetis"}\NormalTok{,}\StringTok{"CountActualGE4"}\NormalTok{)  }
+
+\NormalTok{resultats\_ajustats }\OtherTok{\textless{}{-}} \FunctionTok{lapply}\NormalTok{(variables\_analisi, }\ControlFlowTok{function}\NormalTok{(variable) \{}
+
+\NormalTok{    formula\_model }\OtherTok{\textless{}{-}} \FunctionTok{as.formula}\NormalTok{(}
+        \FunctionTok{paste}\NormalTok{(}\StringTok{"cas \textasciitilde{}"}\NormalTok{, variable, }\StringTok{"+"}\NormalTok{,}\FunctionTok{paste}\NormalTok{(covariables, }\AttributeTok{collapse =} \StringTok{" + "}\NormalTok{),}\StringTok{"+ strata(strata\_id)"}
+\NormalTok{        ))  }
+    
+\NormalTok{    model }\OtherTok{\textless{}{-}} \FunctionTok{clogit}\NormalTok{(formula\_model, }\AttributeTok{data =}\NormalTok{ data)}
+\NormalTok{    coeficients }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{coefficients}
+    
+\NormalTok{    coeficients }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{coefficients}
+\NormalTok{    estimacio }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{]}
+\NormalTok{    p\_valor }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{1}\NormalTok{,}\DecValTok{5}\NormalTok{]}
+\NormalTok{    OR\_aj }\OtherTok{\textless{}{-}}\NormalTok{ coeficients[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{]}
+\NormalTok{    IC\_inf }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(estimacio}\FloatTok{{-}1.96}\SpecialCharTok{*}\NormalTok{coeficients[}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{])}
+\NormalTok{    IC\_sup }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(estimacio}\FloatTok{+1.96}\SpecialCharTok{*}\NormalTok{coeficients[}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{])}
+      
+    \FunctionTok{return}\NormalTok{(}\FunctionTok{data.frame}\NormalTok{(}
+      \AttributeTok{Variable =}\NormalTok{ variable,}
+      \AttributeTok{OR\_Ajustat =} \FunctionTok{round}\NormalTok{(OR\_aj, }\DecValTok{2}\NormalTok{),}
+      \AttributeTok{IC\_Inferior =} \FunctionTok{round}\NormalTok{(IC\_inf, }\DecValTok{2}\NormalTok{),}
+      \AttributeTok{IC\_Superior =} \FunctionTok{format}\NormalTok{(}\FunctionTok{round}\NormalTok{(IC\_sup, }\DecValTok{2}\NormalTok{),}\AttributeTok{nsmall=}\DecValTok{2}\NormalTok{),}
+      \AttributeTok{P\_valor =} \FunctionTok{round}\NormalTok{(p\_valor, }\DecValTok{3}\NormalTok{)}
+\NormalTok{    ))}
+\NormalTok{\})}
+
+
+\NormalTok{taula\_final\_ajustada }\OtherTok{\textless{}{-}} \FunctionTok{do.call}\NormalTok{(rbind, resultats\_ajustats)}
+\FunctionTok{rownames}\NormalTok{(taula\_final\_ajustada) }\OtherTok{\textless{}{-}} \ConstantTok{NULL}
+\NormalTok{tab2 }\OtherTok{\textless{}{-}} \FunctionTok{print}\NormalTok{(taula\_final\_ajustada)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(tab2, }\AttributeTok{caption =} \StringTok{"}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{label\{tab:logajust\}Anàlisi per regressió logística ajustada per covariables"}\NormalTok{,}\AttributeTok{align =} \StringTok{"lcccc"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Estadístics descriptius, mesures de risc,
+inferencies\ldots{}}\label{estaduxedstics-descriptius-mesures-de-risc-inferencies-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Taula descriptiva}
+\NormalTok{taula\_des\_df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
+  \AttributeTok{Variable =} \FunctionTok{rownames}\NormalTok{(tbl),}
+  \AttributeTok{Controls =}\NormalTok{ tbl[, }\StringTok{"Control"}\NormalTok{],}
+  \AttributeTok{Casos =}\NormalTok{ tbl[, }\StringTok{"Cas"}\NormalTok{],}
+  \AttributeTok{stringsAsFactors =} \ConstantTok{FALSE}
+\NormalTok{)}
+
+\NormalTok{taula\_des\_df }\OtherTok{\textless{}{-}}\NormalTok{ taula\_des\_df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\FunctionTok{grepl}\NormalTok{(}\StringTok{"= 1 }\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{(\%}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{)"}\NormalTok{, Variable))}
+
+\NormalTok{taula\_des\_df}\SpecialCharTok{$}\NormalTok{Variable }\OtherTok{\textless{}{-}} \FunctionTok{gsub}\NormalTok{(}\StringTok{" = 1 }\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{(\%}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{)"}\NormalTok{, }\StringTok{""}\NormalTok{, taula\_des\_df}\SpecialCharTok{$}\NormalTok{Variable)}
+
+\CommentTok{\#OR crua }
+\NormalTok{taula\_final\_2b}\SpecialCharTok{$}\NormalTok{Crua }\OtherTok{\textless{}{-}} \FunctionTok{paste0}\NormalTok{(}
+\NormalTok{  taula\_final\_2b}\SpecialCharTok{$}\NormalTok{OR\_Cru, }\StringTok{" ("}\NormalTok{,}
+\NormalTok{  taula\_final\_2b}\SpecialCharTok{$}\NormalTok{IC\_Inferior, }\StringTok{","}\NormalTok{,}
+\NormalTok{  taula\_final\_2b}\SpecialCharTok{$}\NormalTok{IC\_Superior, }\StringTok{"); p="}\NormalTok{,}
+\NormalTok{  taula\_final\_2b}\SpecialCharTok{$}\NormalTok{P\_valor}
+\NormalTok{)}
+
+\CommentTok{\#OR ajustada}
+\NormalTok{taula\_final\_ajustada}\SpecialCharTok{$}\NormalTok{Ajustada }\OtherTok{\textless{}{-}} \FunctionTok{paste0}\NormalTok{(}
+\NormalTok{  taula\_final\_ajustada}\SpecialCharTok{$}\NormalTok{OR\_Ajustat, }\StringTok{" ("}\NormalTok{,}
+\NormalTok{  taula\_final\_ajustada}\SpecialCharTok{$}\NormalTok{IC\_Inferior, }\StringTok{","}\NormalTok{,}
+\NormalTok{  taula\_final\_ajustada}\SpecialCharTok{$}\NormalTok{IC\_Superior, }\StringTok{"); p="}\NormalTok{,}
+\NormalTok{  taula\_final\_ajustada}\SpecialCharTok{$}\NormalTok{P\_valor}
+\NormalTok{)}
+
+\NormalTok{taula\_final }\OtherTok{\textless{}{-}}\NormalTok{ taula\_des\_df }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(taula\_final\_2b[, }\FunctionTok{c}\NormalTok{(}\StringTok{"Variable"}\NormalTok{, }\StringTok{"Crua"}\NormalTok{)], }\AttributeTok{by =} \StringTok{"Variable"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(taula\_final\_ajustada[, }\FunctionTok{c}\NormalTok{(}\StringTok{"Variable"}\NormalTok{, }\StringTok{"Ajustada"}\NormalTok{)], }\AttributeTok{by =} \StringTok{"Variable"}\NormalTok{)}
+
+\NormalTok{taula\_final }\OtherTok{\textless{}{-}}\NormalTok{ taula\_final }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\AttributeTok{Exposure =}\NormalTok{ Variable,}
+         \StringTok{\textasciigrave{}}\AttributeTok{Controls n (\%)}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ Controls,}
+         \StringTok{\textasciigrave{}}\AttributeTok{Casos n (\%)}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ Casos,}
+         \StringTok{\textasciigrave{}}\AttributeTok{OR crua (IC95\%); p valor}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ Crua,}
+         \StringTok{\textasciigrave{}}\AttributeTok{OR ajustada (IC95\%); p valor}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ Ajustada)}
+
+\NormalTok{tab3 }\OtherTok{\textless{}{-}} \FunctionTok{print}\NormalTok{(taula\_final)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(taula\_final, }\AttributeTok{caption =} \StringTok{"Exposició a fàrmacs i riscos associats"}\NormalTok{, }\AttributeTok{align =} \StringTok{"lcccc"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\clearpage
+
+\subsection*{Referències}\label{referuxe8ncies}
+\addcontentsline{toc}{subsection}{Referències}
+
+\phantomsection\label{refs}
+\begin{CSLReferences}{1}{0}
+\bibitem[\citeproctext]{ref-brotomodulo}
+Broto, Pilar Lalueza, Lourdes Girona Brumós, and Ramón Ribera Montañá.
+n.d. {``M{Ó}DULO 11. INTERACCIONES FARMACOL{Ó}GICAS DE f{Á}RMACOS CON
+ACCI{Ó}n SOBRE EL SISTEMA NERVIOSO CENTRAL: ANSIOL{Í}TICOS e
+HIPN{Ó}TICOS, ANTIDEPRESIVOS, ANTIPSIC{Ó}TICOS.''}
+
+\bibitem[\citeproctext]{ref-coupland2011antidepressant}
+Coupland, Carol, Paula Dhiman, Richard Morriss, Antony Arthur, Garry
+Barton, and Julia Hippisley-Cox. 2011. {``Antidepressant Use and Risk of
+Adverse Outcomes in Older People: Population Based Cohort Study.''}
+\emph{Bmj} 343.
+
+\bibitem[\citeproctext]{ref-gorgas2021}
+Gorgas, Maria Queralt, Ferran Torres, Roser Vives, Irene Lopez-Rico,
+Dolors Capella, and Caridad Pontes. 2021. {``Effects of Selective
+Serotonin Reuptake Inhibitors and Other Antidepressant Drugs on the Risk
+of Hip Fracture: A Case-Control Study in an Elderly Mediterranean
+Population.''} \emph{European Journal of Hospital Pharmacy} 28: 28--32.
+\url{https://doi.org/10.1136/ejhpharm-2019-001893}.
+
+\end{CSLReferences}
+
+\end{document}
