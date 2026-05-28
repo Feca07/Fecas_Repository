@@ -181,7 +181,6 @@ cat("F1 de tot:", round(resultats_tan$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_tan$mcc, 4), "\n")
 cat("MAE:", round(resultats_tan$mae, 4), "\n")
 Resum_results2=resultats_tan$metriques_class
-colnames(Resum_results2)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results2)
 
 
@@ -251,7 +250,6 @@ cat("F1 de tot:", round(resultats_nb2$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_nb2$mcc, 4), "\n")
 cat("MAE:", round(resultats_nb2$mae, 4), "\n")
 Resum_results3=resultats_nb2$metriques_class
-colnames(Resum_results3)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results3)
 
 #Tree Augmented Naive Bayes
@@ -318,75 +316,95 @@ print(Resum_results4)
 
 #Tests de comparacions
 
-# 6 breaks nb vs 20 breaks nb
+# 6 breaks nb vs 17 breaks nb
 
 ##ACC
 diferencies_nbs <- acc_nb2s-acc_nbs
 shapiro_test <- shapiro.test(diferencies_nbs)
 cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
-test_result <- wilcox.test(acc_nb2s, acc_nbs, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+test_result <- t.test(acc_nb2s, acc_nbs, paired = TRUE, alternative = "greater")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
 ##F1
 diferenciesF_nbs <- f1_nb2s-f1_nbs
 shapiro_test <- shapiro.test(diferenciesF_nbs)
 cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
 test_result <- t.test(f1_nb2s, f1_nbs, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
 ##MCC
-
 diferenciesM_nbs <- mcc_nb2s-mcc_nbs
 shapiro_test <- shapiro.test(diferenciesM_nbs)
 cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
 test_result <- t.test(mcc_nb2s, mcc_nbs, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
-# 6 breaks tan vs 20 breaks tan
+##MAE
+diferenciesMa_nbs <- mae_nb2s-mae_nbs
+shapiro_test <- shapiro.test(diferenciesMa_nbs)
+cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
+test_result <- t.test(mae_nb2s, mae_nbs, paired = TRUE, alternative = "less")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
+
+# 6 breaks tan vs 17 breaks tan
 
 ##ACC
 diferencies_tans <- acc_tan2s-acc_tans
 shapiro_test1 <- shapiro.test(diferencies_tans)
 cat("p-valor Shapiro-Wilk:", shapiro_test1$p.value, "\n")
-test_result <- wilcox.test(acc_tan2s, acc_tans, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+test_result <- t.test(acc_tan2s, acc_tans, paired = TRUE, alternative = "greater")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
 ##F1
 diferenciesF_tans <- f1_tan2s-f1_tans
 shapiro_test1 <- shapiro.test(diferenciesF_tans)
 cat("p-valor Shapiro-Wilk:", shapiro_test1$p.value, "\n")
-test_result <- wilcox.test(f1_tan2s, f1_tans, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+test_result <- t.test(f1_tan2s, f1_tans, paired = TRUE, alternative = "greater")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
 ##MCC
 diferenciesM_tans <- mcc_tan2s-mcc_tans
 shapiro_test1 <- shapiro.test(diferenciesM_tans)
 cat("p-valor Shapiro-Wilk:", shapiro_test1$p.value, "\n")
-test_result <- wilcox.test(mcc_tan2s, mcc_tans, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
+test_result <- t.test(mcc_tan2s, mcc_tans, paired = TRUE, alternative = "greater")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
-# 20 breaks tan vs 20 breaks nb
+##MAE
+diferenciesMa_tans <- mae_tan2s-mae_tans
+shapiro_test <- shapiro.test(diferenciesMa_tans)
+cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
+test_result <- t.test(mae_tan2s, mae_tans, paired = TRUE, alternative = "less")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
+
+# 17 breaks tan vs 17 breaks nb
 
 ##ACC
-diferencies20s <- acc_tan2s-acc_nb2s
-shapiro_test2 <- shapiro.test(diferencies20s)
+diferencies17s <- acc_tan2s-acc_nb2s
+shapiro_test2 <- shapiro.test(diferencies17s)
 cat("p-valor Shapiro-Wilk:", shapiro_test2$p.value, "\n")
 test_result <- t.test(acc_tan2s, acc_nb2s, paired = TRUE, alternative = "greater")
-cat("p-valor test comparació (Paramètric):", test_result$p.value, "\n") ###guanya TAN de 20 breaks
+cat("p-valor test comparació (Paramètric):", test_result$p.value, "\n") ###guanya TAN de 17 breaks
 
 ##F1
-diferenciesF20s <- f1_tan2s-f1_nb2s
-shapiro_test2 <- shapiro.test(diferenciesF20s)
+diferenciesF17s <- f1_tan2s-f1_nb2s
+shapiro_test2 <- shapiro.test(diferenciesF17s)
 cat("p-valor Shapiro-Wilk:", shapiro_test2$p.value, "\n")
 test_result <- t.test(f1_tan2s, f1_nb2s, paired = TRUE, alternative = "greater")
 cat("p-valor test comparació (Paramètric):", test_result$p.value, "\n")
 
 ##MCC
-diferenciesM20s <- mcc_tan2s-mcc_nb2s
-shapiro_test2 <- shapiro.test(diferenciesM20s)
+diferenciesM17s <- mcc_tan2s-mcc_nb2s
+shapiro_test2 <- shapiro.test(diferenciesM17s)
 cat("p-valor Shapiro-Wilk:", shapiro_test2$p.value, "\n")
 test_result <- t.test(mcc_tan2s, mcc_nb2s, paired = TRUE, alternative = "greater")
 cat("p-valor test comparació (Paramètric):", test_result$p.value, "\n")
+
+##MAE
+diferenciesMa20s <- mae_tan2s-mae_nb2s
+shapiro_test <- shapiro.test(diferenciesMa20s)
+cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
+test_result <- t.test(mae_tan2s, mae_nb2s, paired = TRUE, alternative = "less")
+cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 17 breaks
 
 #################################################################
 #3. Model final entrenat amb totes les dades  
