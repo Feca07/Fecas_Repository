@@ -65,6 +65,7 @@ pred_nb <- character(n)
 acc_nbs <- NULL
 mcc_nbs  <- NULL
 f1_nbs   <- NULL
+mae_nbs  <- NULL
 
 for (i in 1:k) {
   
@@ -99,6 +100,7 @@ for (i in 1:k) {
   res_fold <- metriques_clasificacio(factor(reals_fold), pred_fold)
   mcc_nbs[i] <- res_fold$mcc
   f1_nbs[i]  <- res_fold$f1_macro
+  mae_nbs[i] <- res_fold$mae
 }
 
 #Observem els resultats: 
@@ -110,6 +112,7 @@ cat("precissio de tot:", round(resultats_nb$precissio_tot, 4), "\n")
 cat("sensibilitat de tot:", round(resultats_nb$sensibilitat_tot, 4), "\n")
 cat("F1 de tot:", round(resultats_nb$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_nb$mcc, 4), "\n")
+cat("MAE:", round(resultats_nb$mae, 4), "\n")
 Resum_results=resultats_nb$metriques_class
 colnames(Resum_results)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results)
@@ -133,6 +136,7 @@ pred_tan <- character(n)
 acc_tans <- NULL
 mcc_tans  <- NULL
 f1_tans   <- NULL
+mae_tans  <- NULL
 
 for (i in 1:k) {
   
@@ -163,6 +167,7 @@ for (i in 1:k) {
   res_fold    <- metriques_clasificacio(factor(reals_fold), pred_fold)
   mcc_tans[i] <- res_fold$mcc
   f1_tans[i]  <- res_fold$f1_macro
+  mae_tans[i] <- res_fold$mae
 }
 
 #Mètriques
@@ -174,6 +179,7 @@ cat("precissio de tot:", round(resultats_tan$precissio_tot, 4), "\n")
 cat("sensibilitat de tot:", round(resultats_tan$sensibilitat_tot, 4), "\n")
 cat("F1 de tot:", round(resultats_tan$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_tan$mcc, 4), "\n")
+cat("MAE:", round(resultats_tan$mae, 4), "\n")
 Resum_results2=resultats_tan$metriques_class
 colnames(Resum_results2)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results2)
@@ -183,7 +189,7 @@ print(Resum_results2)
 ####################################################################################################################################
 ####################################################################################################################################
 
-predictors_disc <- discretize(predictors, method = "hartemink", breaks = 20, ibreaks = 200, idisc = "quantile")
+predictors_disc <- discretize(predictors, method = "hartemink", breaks = 17, ibreaks = 170, idisc = "quantile")
 data <- cbind(predictors_disc, quality = vino$quality)
 data <- as.data.frame(lapply(data, as.factor))
 
@@ -198,6 +204,7 @@ pred_nb2 <- character(n)
 acc_nb2s <- NULL
 mcc_nb2s  <- NULL
 f1_nb2s   <- NULL
+mae_nb2s  <- NULL
 
 for (i in 1:k) {
   
@@ -232,6 +239,7 @@ for (i in 1:k) {
   res_fold    <- metriques_clasificacio(factor(reals_fold), pred_fold)
   mcc_nb2s[i] <- res_fold$mcc
   f1_nb2s[i]  <- res_fold$f1_macro
+  mae_nb2s[i] <- res_fold$mae
 }
 
 resultats_nb2 <- metriques_clasificacio(data$quality, pred_nb2)
@@ -241,6 +249,7 @@ cat("precissio de tot:", round(resultats_nb2$precissio_tot, 4), "\n")
 cat("sensibilitat de tot:", round(resultats_nb2$sensibilitat_tot, 4), "\n")
 cat("F1 de tot:", round(resultats_nb2$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_nb2$mcc, 4), "\n")
+cat("MAE:", round(resultats_nb2$mae, 4), "\n")
 Resum_results3=resultats_nb2$metriques_class
 colnames(Resum_results3)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results3)
@@ -256,6 +265,7 @@ pred_tan2 <- character(n)
 acc_tan2s <- NULL
 mcc_tan2s <- NULL
 f1_tan2s <- NULL
+mae_tan2s  <- NULL
 
 for (i in 1:k) {
   
@@ -286,6 +296,7 @@ for (i in 1:k) {
   res_fold    <- metriques_clasificacio(factor(reals_fold), pred_fold)
   mcc_tan2s[i] <- res_fold$mcc
   f1_tan2s[i]  <- res_fold$f1_macro
+  mae_tan2s[i] <- res_fold$mae
 }
 
 #Mètriques
@@ -297,8 +308,8 @@ cat("precissio de tot:", round(resultats_tan2$precissio_tot, 4), "\n")
 cat("sensibilitat de tot:", round(resultats_tan2$sensibilitat_tot, 4), "\n")
 cat("F1 de tot:", round(resultats_tan2$f1_macro, 4), "\n")
 cat("MCC:", round(resultats_tan2$mcc, 4), "\n")
+cat("MAE:", round(resultats_tan2$mae, 4), "\n")
 Resum_results4=resultats_tan2$metriques_class
-colnames(Resum_results4)=c("Classe","Precissio","Sensibilitat","F1","N")
 print(Resum_results4)
 
 ##################################################################################################################################
@@ -331,9 +342,6 @@ cat("p-valor Shapiro-Wilk:", shapiro_test$p.value, "\n")
 test_result <- t.test(mcc_nb2s, mcc_nbs, paired = TRUE, alternative = "greater")
 cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
 
-p_values=c(0.002912512,0.003826733,0.004983068)
-p_values_bonferroni <- p.adjust(p_values, method = "bonferroni")
-
 # 6 breaks tan vs 20 breaks tan
 
 ##ACC
@@ -357,9 +365,6 @@ cat("p-valor Shapiro-Wilk:", shapiro_test1$p.value, "\n")
 test_result <- wilcox.test(mcc_tan2s, mcc_tans, paired = TRUE, alternative = "greater")
 cat("p-valor test comparació (No Paramètric):", test_result$p.value, "\n") ###guanya 20 breaks
 
-p_values2=c(0.0009765625,0.0009765625,0.0009765625)
-p_values_bonferroni2 <- p.adjust(p_values2, method = "bonferroni")
-
 # 20 breaks tan vs 20 breaks nb
 
 ##ACC
@@ -382,9 +387,6 @@ shapiro_test2 <- shapiro.test(diferenciesM20s)
 cat("p-valor Shapiro-Wilk:", shapiro_test2$p.value, "\n")
 test_result <- t.test(mcc_tan2s, mcc_nb2s, paired = TRUE, alternative = "greater")
 cat("p-valor test comparació (Paramètric):", test_result$p.value, "\n")
-
-p_values3=c(9.434546e-07,2.476093e-06,5.632053e-06)
-p_values_bonferroni3 <- p.adjust(p_values3, method = "bonferroni")
 
 #################################################################
 #3. Model final entrenat amb totes les dades  

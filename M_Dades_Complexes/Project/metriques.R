@@ -26,12 +26,21 @@ metriques_clasificacio <- function(real, pred) {
   sensibilitat <- safe_div(tp, tp + fn)
   f1 <- safe_div(2 * precissio * sensibilitat, precissio + sensibilitat)
   
+  nivells_ordinals <- c("Baixa", "Mitjana", "Alta")
+  real_num <- as.numeric(factor(real, levels = nivells_ordinals))
+  pred_num <- as.numeric(factor(pred, levels = nivells_ordinals))
+  error_absolut <- abs(real_num - pred_num)
+  mae_per_classe <- sapply(clases, function(cl) {
+    mean(error_absolut[real == cl], na.rm = TRUE)
+  })
+  
   metriques_class <- data.frame(
     Clase = clases,
     precissio = precissio,
     sensibilitat = sensibilitat,
     F1_score = f1,
-    Soporte = rowSums(cm)
+    MAE_classe = mae_per_classe,
+    N = rowSums(cm)
   )
   
   accuracy <- sum(tp) / n
@@ -49,7 +58,7 @@ metriques_clasificacio <- function(real, pred) {
   denominador <- sqrt((s^2-sum(p_k^2))*(s^2-sum(t_k^2)))
   
   mcc <- ifelse(denominador==0, NA, numerador/denominador)
-  
+  mae_global <- mean(error_absolut, na.rm = TRUE)
   return(list(
     matriz_confusion = cm,
     accuracy = accuracy,
@@ -57,6 +66,7 @@ metriques_clasificacio <- function(real, pred) {
     sensibilitat_tot = sensibilitat_tot,
     f1_macro = f1_macro,
     mcc = mcc,
+    mae = mae_global, 
     metriques_class = metriques_class
   ))
 }
